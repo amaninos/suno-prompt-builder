@@ -1,0 +1,64 @@
+{
+  "rhythmic_feel": [
+    "Ceremonial and slow",
+    "Danceable and polyrhythmic",
+    "Meditative and free-flowing",
+    "Driving and energetic",
+    "Syncopated and complex",
+    "Steady and traditional",
+    "Irregular and experimental"
+  ],
+  "scale_mode": [
+    "Pentatonic scale",
+    "Major/Minor diatonic scale",
+    "Traditional modal system (Makam)",
+    "Microtonal scale",
+    "Atonal or chromatic scale",
+    "Blues scale",
+    "Whole tone scale",
+    "Diminished scale",
+    "Harmonic minor",
+    "Melodic minor"
+  ],
+  "musical_texture": [
+    "Monophonic - single melody",
+    "Homophonic - melody and chords",
+    "Polyphonic - interwoven melodies",
+    "Heterophonic - simultaneous variations",
+    "Sparse and minimal",
+    "Dense and layered"
+  ],
+  "performance_context": [
+    "Sacred ritual or ceremony",
+    "Lively community dance",
+    "Intimate solo performance",
+    "Bustling street performance",
+    "Formal court or concert setting",
+    "Traditional wedding celebration",
+    "Religious gathering",
+    "Festival or celebration"
+  ],
+  "world_vocal_style": [
+    "Storytelling vocals",
+    "Ritualistic chanting",
+    "Call-and-response patterns",
+    "Purely instrumental",
+    "Throat singing - harmonic overtones",
+    "Alpine-style yodeling",
+    "Powerful Gospel call-and-response",
+    "Traditional folk singing",
+    "Operatic world music style",
+    "Nasal traditional style"
+  ],
+  "atmosphere": [
+    "Raw, field-recorded feel",
+    "Clean, natural acoustic sound",
+    "Trance-like, hypnotic quality",
+    "Modern electronic fusion",
+    "Vintage and nostalgic",
+    "Contemporary and polished",
+    "Ritualistic and spiritual",
+    "Festive and celebratory"
+  ]
+}
+

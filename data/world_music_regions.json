@@ -1,0 +1,124 @@
+{
+  "regions": [
+    {
+      "region": "Middle East",
+      "traditions": [
+        "Arabic Classical",
+        "Turkish Classical",
+        "Persian Classical",
+        "Andalusian",
+        "Bedouin",
+        "Levantine"
+      ],
+      "instruments": [
+        "Oud",
+        "Qanun",
+        "Ney",
+        "Darbuka",
+        "Riq",
+        "Buzuq",
+        "Santur",
+        "Tar",
+        "Setar"
+      ]
+    },
+    {
+      "region": "India",
+      "traditions": [
+        "Hindustani Classical",
+        "Carnatic Classical",
+        "Bollywood",
+        "Folk",
+        "Bhangra",
+        "Qawwali"
+      ],
+      "instruments": [
+        "Sitar",
+        "Tabla",
+        "Harmonium",
+        "Sarod",
+        "Bansuri",
+        "Veena",
+        "Mridangam",
+        "Dholak"
+      ]
+    },
+    {
+      "region": "Africa",
+      "traditions": [
+        "West African Highlife",
+        "South African Jazz",
+        "Ethiopian Jazz",
+        "Griot",
+        "Afrobeat",
+        "Amapiano"
+      ],
+      "instruments": [
+        "Kora",
+        "Djembe",
+        "Balafon",
+        "Mbira",
+        "Kalimba",
+        "Talking Drum",
+        "Shekere"
+      ]
+    },
+    {
+      "region": "Latin America",
+      "traditions": [
+        "Salsa",
+        "Bossa Nova",
+        "Tango",
+        "Cumbia",
+        "Samba",
+        "Flamenco"
+      ],
+      "instruments": [
+        "Bongos",
+        "Congas",
+        "Maracas",
+        "Cuatro",
+        "Charango",
+        "Bandoneon",
+        "Cajón"
+      ]
+    },
+    {
+      "region": "East Asia",
+      "traditions": [
+        "Chinese Classical",
+        "Japanese Traditional",
+        "Korean Traditional",
+        "Gamelan",
+        "Peking Opera"
+      ],
+      "instruments": [
+        "Erhu",
+        "Guzheng",
+        "Pipa",
+        "Shakuhachi",
+        "Koto",
+        "Taiko",
+        "Gayageum",
+        "Gamelan"
+      ]
+    },
+    {
+      "region": "Balkans",
+      "traditions": [
+        "Balkan Folk",
+        "Romani",
+        "Greek Rebetiko",
+        "Bulgarian Folk"
+      ],
+      "instruments": [
+        "Bouzouki",
+        "Accordion",
+        "Clarinet",
+        "Tamburica",
+        "Gaida"
+      ]
+    }
+  ]
+}
+

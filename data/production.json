@@ -1,0 +1,42 @@
+{
+  "mixing_style": [
+    "Clean and Polished",
+    "Raw and Organic",
+    "Vintage Analog",
+    "Modern Digital",
+    "Lo-fi Aesthetic",
+    "High Fidelity",
+    "Warm and Saturated",
+    "Bright and Crisp",
+    "Dark and Moody",
+    "Wide Stereo",
+    "Intimate Mono",
+    "Layered and Dense",
+    "Minimal and Sparse",
+    "Compressed",
+    "Dynamic",
+    "Lo-fi & Vintage - Warm and soft like old cassette",
+    "Minimal - Simple and few instruments",
+    "Layered & Complex - Multi-layered and rich sound",
+    "Raw & Live - Natural like live concert",
+    "Atmospheric - Echoing and wide atmosphere"
+  ],
+  "production_style": [
+    "Studio Recorded",
+    "Live Performance",
+    "Bedroom Production",
+    "Professional Mix",
+    "DIY Aesthetic",
+    "Cinematic",
+    "Commercial",
+    "Underground",
+    "Experimental",
+    "Traditional",
+    "Futuristic",
+    "Retro",
+    "Hybrid",
+    "Acoustic",
+    "Electronic"
+  ]
+}
+

@@ -1,0 +1,127 @@
+{
+  "lyric_theme": [
+    "Heartbreak and healing",
+    "Self-discovery",
+    "Overcoming adversity",
+    "Celebration and joy",
+    "Mystical journey",
+    "Nostalgic memories",
+    "City night life",
+    "Nature and seasons",
+    "Cosmic/space love story",
+    "Rebellion and freedom"
+  ],
+  "lyric_emotion": [
+    "Bittersweet",
+    "Empowering",
+    "Hopeful",
+    "Melancholic",
+    "Playful",
+    "Dark and brooding",
+    "Romantic",
+    "Ethereal",
+    "Triumphant"
+  ],
+  "lyric_story_arc": [
+    "Verse = problem, Chorus = breakthrough",
+    "Chronological storytelling",
+    "Dream-like vignettes",
+    "Dialogue between two characters",
+    "Myth/legend retelling",
+    "Inner monologue",
+    "Call-and-response narrative"
+  ],
+  "lyric_perspective": [
+    "First person",
+    "Second person",
+    "Third person",
+    "Group/collective voice",
+    "Unreliable narrator",
+    "Omniscient narrator"
+  ],
+  "lyric_tense": [
+    "Past tense",
+    "Present tense",
+    "Future tense",
+    "Switching tenses"
+  ],
+  "lyric_rhyme": [
+    "AABB",
+    "ABAB",
+    "ABCB",
+    "AAAA",
+    "Free verse",
+    "Internal rhymes",
+    "Slant rhymes"
+  ],
+  "lyric_language": [
+    "English",
+    "Turkish",
+    "Spanish",
+    "French",
+    "German",
+    "Italian",
+    "Portuguese",
+    "Japanese",
+    "Korean"
+  ],
+  "lyric_structure": [
+    "Verse-Chorus-Verse-Chorus-Bridge-Chorus",
+    "Verse-Verse-Bridge-Verse (folk)",
+    "Verse-Chorus-Post-Chorus",
+    "Intro-Verse-Pre-Chorus-Chorus",
+    "Chant/Hook driven",
+    "Spoken word intro + sung hook",
+    "Instrumental intro + lyrical outro"
+  ],
+  "presets": [
+    {
+      "name": "Midnight Synthwave Confession",
+      "description": "Nostalgic neon city monologue with ABAB rhymes",
+      "values": {
+        "lyric_theme": "Self-discovery",
+        "lyric_emotion": "Bittersweet",
+        "lyric_story_arc": "Verse = problem, Chorus = breakthrough",
+        "lyric_perspective": "First person",
+        "lyric_tense": "Present tense",
+        "lyric_rhyme": "ABAB",
+        "lyric_language": "English",
+        "lyric_structure": "Verse-Chorus-Verse-Chorus-Bridge-Chorus",
+        "lyric_keywords": "neon rain, plastic hearts, cassette static",
+        "lyric_custom_text": ""
+      }
+    },
+    {
+      "name": "Anatolian Folk Epic",
+      "description": "Türkçe destansı anlatım, bağlama eşliği",
+      "values": {
+        "lyric_theme": "Mythical journey",
+        "lyric_emotion": "Triumphant",
+        "lyric_story_arc": "Chronological storytelling",
+        "lyric_perspective": "Third person",
+        "lyric_tense": "Past tense",
+        "lyric_rhyme": "ABCB",
+        "lyric_language": "Turkish",
+        "lyric_structure": "Verse-Verse-Bridge-Verse (folk)",
+        "lyric_keywords": "diyar diyar, gölge ordusu, saz tınısı",
+        "lyric_custom_text": ""
+      }
+    },
+    {
+      "name": "Hyperpop Heartbreak",
+      "description": "Glitchy diary entry with spoken intro",
+      "values": {
+        "lyric_theme": "Heartbreak and healing",
+        "lyric_emotion": "Emotional",
+        "lyric_story_arc": "Inner monologue",
+        "lyric_perspective": "Second person",
+        "lyric_tense": "Present tense",
+        "lyric_rhyme": "Slant rhymes",
+        "lyric_language": "English",
+        "lyric_structure": "Spoken word intro + sung hook",
+        "lyric_keywords": "buffering heart, pixel tears, ctrl+undo",
+        "lyric_custom_text": ""
+      }
+    }
+  ]
+}

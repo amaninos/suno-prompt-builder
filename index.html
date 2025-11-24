@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suno Prompt Builder – Apple UI Edition</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Theme Toggle -->
+        <button id="theme-toggle" class="theme-toggle" title="Toggle Dark Mode">
+            <span class="theme-icon">🌙</span>
+        </button>
+
+        <!-- Left Panel: Settings -->
+        <aside class="panel left-panel">
+            <div class="panel-header">
+                <h2>Settings</h2>
+            </div>
+            <div id="form-sections" class="form-sections">
+                <!-- Dynamic form sections will be inserted here -->
+            </div>
+        </aside>
+
+        <!-- Center Panel: Output -->
+        <main class="panel center-panel">
+            <div class="panel-header">
+                <h2>Prompt Output</h2>
+                <label class="live-preview-toggle">
+                    <input type="checkbox" id="live-preview-toggle" checked>
+                    <span class="toggle-label">Live Preview</span>
+                </label>
+            </div>
+            <div class="output-container">
+                <div class="textarea-wrapper">
+                    <textarea 
+                        id="prompt-output" 
+                        class="prompt-textarea" 
+                        placeholder="Your generated prompt will appear here..."
+                        readonly
+                    ></textarea>
+                    <div class="character-counter">
+                        <span id="char-count">0</span> / 1000
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button id="generate-btn" class="btn btn-primary">Generate</button>
+                    <button id="random-btn" class="btn btn-secondary random-btn" title="Generate Random Prompt">
+                        <span class="dice-icon">🎲</span> Random
+                    </button>
+                    <button id="copy-btn" class="btn btn-secondary">Copy</button>
+                    <button id="save-btn" class="btn btn-secondary">Save</button>
+                    <button id="optimize-btn" class="btn btn-secondary">Optimize</button>
+                    <div class="button-dropdown">
+                        <button id="export-btn" class="btn btn-secondary">Export</button>
+                        <div class="dropdown-menu">
+                            <button id="export-json-btn">Export as JSON</button>
+                            <button id="export-txt-btn">Export as Text</button>
+                        </div>
+                    </div>
+                    <button id="import-btn" class="btn btn-secondary">Import</button>
+                    <button id="reset-btn" class="btn btn-tertiary">Reset</button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Right Panel: Tips & History -->
+        <aside class="panel right-panel">
+            <div class="panel-header">
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="tips">Tips</button>
+                    <button class="tab-btn" data-tab="templates">Templates</button>
+                    <button class="tab-btn" data-tab="shortcuts">Shortcuts</button>
+                    <button class="tab-btn" data-tab="history">History</button>
+                </div>
+            </div>
+            <div class="tab-content active" id="tips-content">
+                <div class="tips-content">
+                    <ul class="tips-list">
+                        <li>Select only the fields that are relevant to your track</li>
+                        <li>Less is more – too many details can confuse the AI</li>
+                        <li>Use specific instruments and styles for better results</li>
+                        <li>The Optimize button will compress your prompt to ≤1000 characters</li>
+                        <li>Turkish makam names are preserved as-is in the output</li>
+                        <li>World music selections create rich, authentic descriptions</li>
+                        <li>Mood and tempo are crucial for setting the right atmosphere</li>
+                        <li>Vocal settings are optional – leave blank for instrumental tracks</li>
+                        <li>Production style affects the overall sound character</li>
+                        <li>Copy your prompt and paste it directly into Suno</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="tab-content" id="shortcuts-content">
+                <div class="shortcuts-content">
+                    <div class="shortcuts-section">
+                        <h4>General</h4>
+                        <div class="shortcut-item">
+                            <kbd>Ctrl</kbd> + <kbd>G</kbd>
+                            <span>Generate Prompt</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <kbd>Ctrl</kbd> + <kbd>C</kbd>
+                            <span>Copy Prompt</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <kbd>Ctrl</kbd> + <kbd>R</kbd>
+                            <span>Random Prompt</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <kbd>Ctrl</kbd> + <kbd>O</kbd>
+                            <span>Optimize Prompt</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <kbd>Ctrl</kbd> + <kbd>E</kbd>
+                            <span>Export Prompt</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <kbd>Ctrl</kbd> + <kbd>I</kbd>
+                            <span>Import Prompt</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <kbd>Ctrl</kbd> + <kbd>D</kbd>
+                            <span>Toggle Dark Mode</span>
+                        </div>
+                    </div>
+                    <div class="shortcuts-section">
+                        <h4>Navigation</h4>
+                        <div class="shortcut-item">
+                            <kbd>Esc</kbd>
+                            <span>Close Modal</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <kbd>Tab</kbd>
+                            <span>Navigate Form Fields</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-content" id="templates-content">
+                <div class="templates-content">
+                    <p class="templates-intro">Click a template to load it into the form:</p>
+                    <div id="templates-list" class="templates-list">
+                        <!-- Templates will be inserted here -->
+                    </div>
+                </div>
+            </div>
+            <div class="tab-content" id="history-content">
+                <div class="history-content">
+                    <div class="history-header">
+                        <button id="clear-history-btn" class="btn-small btn-tertiary">Clear All</button>
+                    </div>
+                    <div id="history-list" class="history-list">
+                        <!-- History items will be inserted here -->
+                    </div>
+                    <div id="history-empty" class="history-empty">
+                        <p>No prompts saved yet.</p>
+                        <p class="history-empty-sub">Generated prompts will appear here.</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Hidden file input for import -->
+    <input type="file" id="import-file-input" accept=".json,.txt" style="display: none;">
+
+    <!-- Analysis Modal -->
+    <div id="analysis-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Prompt Analysis & Optimization</h3>
+                <button class="modal-close" id="close-analysis-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="analysis-results"></div>
+            </div>
+            <div class="modal-footer">
+                <button id="apply-optimization-btn" class="btn btn-primary">Apply Optimization</button>
+                <button id="cancel-analysis-btn" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
+
