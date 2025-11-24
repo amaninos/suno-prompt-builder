@@ -287,6 +287,54 @@ select:hover, input[type="text"]:hover {
     width: fit-content;
 }
 
+.lyric-preview-card {
+    margin-top: var(--spacing-lg);
+    padding: var(--spacing-lg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    background: var(--bg-secondary);
+    box-shadow: var(--shadow-sm);
+}
+
+.lyric-preview-header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-sm);
+}
+
+.lyric-preview-title h4 {
+    margin: 0;
+    font-size: 16px;
+    color: var(--text-primary);
+}
+
+.lyric-preview-output {
+    background: var(--bg-primary);
+    border: 1px dashed var(--border-color);
+    border-radius: var(--radius);
+    padding: var(--spacing-md);
+    font-family: 'SF Mono', 'SF Pro Display', monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    min-height: 96px;
+    white-space: pre-wrap;
+}
+
+.lyric-preview-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+}
+
+.lyric-preview-btn {
+    flex: none;
+    min-width: auto;
+}
+
 .text-input, .textarea-input {
     font-family: inherit;
     font-size: 15px;

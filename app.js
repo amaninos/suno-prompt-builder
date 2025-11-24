@@ -32,6 +32,11 @@ class SunoPromptBuilder {
         this.exportDropdown = document.querySelector('.dropdown-menu');
         this.themeToggle = document.getElementById('theme-toggle');
         this.lyricSummaryBtn = null;
+        this.lyricDraftOutput = null;
+        this.lyricDraftCopyBtn = null;
+        this.lyricDraftRegenBtn = null;
+        this.currentLyricDraft = '';
+        this.lyricPreviewTimeout = null;
         
         this.init();
     }
@@ -173,6 +178,7 @@ class SunoPromptBuilder {
         
         // Setup live preview after form is rendered
         this.setupLivePreview();
+        this.setupLyricPreviewWatchers();
     }
 
     getPlaceholderForField(fieldId) {
@@ -415,6 +421,50 @@ class SunoPromptBuilder {
         summaryActions.appendChild(summaryButton);
         content.appendChild(summaryActions);
         this.lyricSummaryBtn = summaryButton;
+
+        // Lyric draft preview
+        const previewCard = document.createElement('div');
+        previewCard.className = 'lyric-preview-card';
+        const previewHeader = document.createElement('div');
+        previewHeader.className = 'lyric-preview-header';
+        const previewTitle = document.createElement('div');
+        previewTitle.className = 'lyric-preview-title';
+        const previewHeading = document.createElement('h4');
+        previewHeading.textContent = 'Lyric Draft Preview';
+        const previewHint = document.createElement('p');
+        previewHint.className = 'field-hint';
+        previewHint.textContent = 'Auto-generated snippet updates as you tweak lyric settings.';
+        previewTitle.appendChild(previewHeading);
+        previewTitle.appendChild(previewHint);
+
+        const previewActions = document.createElement('div');
+        previewActions.className = 'lyric-preview-actions';
+        const regenerateBtn = document.createElement('button');
+        regenerateBtn.type = 'button';
+        regenerateBtn.className = 'btn btn-secondary lyric-preview-btn';
+        regenerateBtn.textContent = 'Regenerate lines';
+        regenerateBtn.addEventListener('click', () => this.updateLyricDraftPreview());
+        const copyDraftBtn = document.createElement('button');
+        copyDraftBtn.type = 'button';
+        copyDraftBtn.className = 'btn btn-secondary lyric-preview-btn';
+        copyDraftBtn.textContent = 'Copy draft';
+        copyDraftBtn.addEventListener('click', () => this.copyLyricDraft());
+        previewActions.appendChild(regenerateBtn);
+        previewActions.appendChild(copyDraftBtn);
+
+        previewHeader.appendChild(previewTitle);
+        previewHeader.appendChild(previewActions);
+        previewCard.appendChild(previewHeader);
+
+        const previewOutput = document.createElement('pre');
+        previewOutput.className = 'lyric-preview-output';
+        previewOutput.textContent = 'Select lyric options to preview a draft snippet.';
+        previewCard.appendChild(previewOutput);
+        content.appendChild(previewCard);
+
+        this.lyricDraftOutput = previewOutput;
+        this.lyricDraftCopyBtn = copyDraftBtn;
+        this.lyricDraftRegenBtn = regenerateBtn;
 
         header.addEventListener('click', () => {
             header.classList.toggle('collapsed');
@@ -907,6 +957,48 @@ class SunoPromptBuilder {
         }
     }
 
+    setupLyricPreviewWatchers() {
+        if (!this.lyricDraftOutput) {
+            return;
+        }
+        const lyricFields = [
+            'lyric_theme',
+            'lyric_emotion',
+            'lyric_story_arc',
+            'lyric_perspective',
+            'lyric_tense',
+            'lyric_rhyme',
+            'lyric_language',
+            'lyric_structure',
+            'lyric_keywords',
+            'lyric_custom_text'
+        ];
+        const handleUpdate = () => {
+            clearTimeout(this.lyricPreviewTimeout);
+            this.lyricPreviewTimeout = setTimeout(() => this.updateLyricDraftPreview(), 150);
+        };
+        lyricFields.forEach(fieldId => {
+            const el = document.getElementById(fieldId);
+            if (!el) return;
+            const eventName = el.tagName === 'SELECT' ? 'change' : 'input';
+            el.addEventListener(eventName, handleUpdate);
+        });
+        this.updateLyricDraftPreview();
+    }
+
+    updateLyricDraftPreview() {
+        if (!this.lyricDraftOutput) return;
+        const values = this.getFormValues();
+        const draft = this.generateLyricDraft(values);
+        if (!draft) {
+            this.lyricDraftOutput.textContent = 'Select lyric options to preview a draft snippet.';
+            this.currentLyricDraft = '';
+            return;
+        }
+        this.currentLyricDraft = draft;
+        this.lyricDraftOutput.textContent = draft;
+    }
+
     getFormValues() {
         const values = {};
         const selects = document.querySelectorAll('select');
@@ -1150,6 +1242,7 @@ class SunoPromptBuilder {
         });
         this.generatePrompt();
         this.copyLyricSummary();
+        this.updateLyricDraftPreview();
     }
 
     buildLyricSummary(values) {
@@ -1228,6 +1321,147 @@ class SunoPromptBuilder {
             button.textContent = originalText;
             button.disabled = false;
         }, 1600);
+    }
+
+    generateLyricDraft(values) {
+        const hasInput = [
+            'lyric_theme',
+            'lyric_emotion',
+            'lyric_story_arc',
+            'lyric_perspective',
+            'lyric_keywords',
+            'lyric_custom_text'
+        ].some(field => values[field]);
+        if (!hasInput) {
+            return '';
+        }
+        const voice = this.getLyricVoice(values.lyric_perspective);
+        const emotion = (values.lyric_emotion || 'restless').toLowerCase();
+        const theme = values.lyric_theme || 'electric dream';
+        const structure = values.lyric_structure ? values.lyric_structure.split('(')[0].trim() : 'Verse / Chorus loop';
+        const tense = values.lyric_tense ? values.lyric_tense.toLowerCase() : 'present tense';
+        const storyArc = values.lyric_story_arc || 'Verse = problem, Chorus = breakthrough';
+        const languageTag = values.lyric_language ? ` in ${values.lyric_language}` : '';
+        const keywords = this.extractLyricKeywords(values.lyric_keywords);
+        const imagery = keywords[0] || this.pickRandom([
+            'neon alleys',
+            'storm-lit rooftops',
+            'desert highways',
+            'midnight subways',
+            'old vinyl basements',
+            'hidden after-hours bars'
+        ]);
+        const texture = keywords[1] || this.pickRandom([
+            'humming wires',
+            'paper-thin walls',
+            'electric static',
+            'silver fog',
+            'mirrorball dust'
+        ]);
+        const signal = keywords[2] || this.pickRandom([
+            'broken radio prayers',
+            'looping voicemail ghosts',
+            'cheap motel confessions',
+            'cathedral reverb',
+            'echoes of a distant crowd'
+        ]);
+
+        const openingLines = [
+            `${voice.pronounCapital} chase ${emotion} echoes through ${imagery}`,
+            `${voice.pronounCapital} hold ${voice.possessive} breath inside ${imagery}`,
+            `${voice.pronounCapital} stitch ${voice.possessive} pulse to ${texture}`,
+            `${voice.pronounCapital} confess ${voice.possessive} secrets under ${imagery}`
+        ];
+
+        const middleLines = [
+            `${voice.pronoun} trade names with ${signal}`,
+            `${voice.pronoun} keep ${voice.possessive} promises sealed in ${texture}`,
+            `${voice.pronoun} rewrite ${theme.toLowerCase()} across ${imagery}`,
+            `${voice.pronoun} drift between ${structure.toLowerCase()} ghosts`
+        ];
+
+        const arcLines = [
+            `${this.capitalize(storyArc.split(',')[0])} pulls ${voice.object} forward`,
+            `${structure} keeps ${voice.object} awake`,
+            `${this.capitalize(emotion)} tides drown ${voice.object} in light`,
+            `${voice.pronounCapital} learn to breathe ${texture} again`
+        ];
+
+        const line1 = this.pickRandom(openingLines);
+        const line2 = `In ${tense}${languageTag}, ${this.pickRandom(middleLines)}.`;
+        let line3 = values.lyric_custom_text && values.lyric_custom_text.trim() 
+            ? values.lyric_custom_text.trim()
+            : this.pickRandom(arcLines);
+
+        const draft = `${line1}.\n${line2}\n${line3}`;
+        return draft;
+    }
+
+    copyLyricDraft() {
+        if (!this.currentLyricDraft) {
+            alert('Generate a lyric draft first.');
+            return;
+        }
+        const text = this.currentLyricDraft;
+        const fallback = () => {
+            const temp = document.createElement('textarea');
+            temp.value = text;
+            temp.style.position = 'fixed';
+            temp.style.opacity = '0';
+            document.body.appendChild(temp);
+            temp.select();
+            try {
+                document.execCommand('copy');
+            } catch (error) {
+                alert('Copy failed. Please copy manually:\n' + text);
+                document.body.removeChild(temp);
+                return;
+            }
+            document.body.removeChild(temp);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                this.showTemporaryStatus(this.lyricDraftCopyBtn, 'Copied!');
+            }).catch(() => {
+                fallback();
+                this.showTemporaryStatus(this.lyricDraftCopyBtn, 'Copied!');
+            });
+        } else {
+            fallback();
+            this.showTemporaryStatus(this.lyricDraftCopyBtn, 'Copied!');
+        }
+    }
+
+    getLyricVoice(perspective) {
+        const voices = {
+            'First person': { pronoun: 'i', pronounCapital: 'I', possessive: 'my', object: 'me' },
+            'Second person': { pronoun: 'you', pronounCapital: 'You', possessive: 'your', object: 'you' },
+            'Third person': { pronoun: 'they', pronounCapital: 'They', possessive: 'their', object: 'them' },
+            'Group/collective voice': { pronoun: 'we', pronounCapital: 'We', possessive: 'our', object: 'us' },
+            'Unreliable narrator': { pronoun: 'i', pronounCapital: 'I', possessive: 'my', object: 'me' },
+            'Omniscient narrator': { pronoun: 'they', pronounCapital: 'They', possessive: 'their', object: 'them' }
+        };
+        return voices[perspective] || { pronoun: 'i', pronounCapital: 'I', possessive: 'my', object: 'me' };
+    }
+
+    extractLyricKeywords(keywordString) {
+        if (!keywordString) return [];
+        return keywordString
+            .split(',')
+            .map(part => part.trim())
+            .filter(Boolean)
+            .slice(0, 3);
+    }
+
+    pickRandom(array) {
+        if (!array || array.length === 0) return '';
+        const index = Math.floor(Math.random() * array.length);
+        return array[index];
+    }
+
+    capitalize(text) {
+        if (!text) return '';
+        return text.charAt(0).toUpperCase() + text.slice(1);
     }
 
     generateRandomPrompt() {
@@ -1332,6 +1566,7 @@ class SunoPromptBuilder {
         // Generate prompt after a short delay to allow world music to populate
         setTimeout(() => {
             this.generatePrompt();
+            this.updateLyricDraftPreview();
             
             // Visual feedback
             const originalText = this.randomBtn.innerHTML;
@@ -1713,6 +1948,7 @@ class SunoPromptBuilder {
             });
             this.promptOutput.value = '';
             this.updateCharacterCounter();
+            this.updateLyricDraftPreview();
         }
     }
 
