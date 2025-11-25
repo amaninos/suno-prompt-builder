@@ -15,29 +15,29 @@
     </script>
 </head>
 <body>
-    <div class="container">
-        <!-- Page Header -->
-        <header class="page-header">
-            <div class="header-content">
-                <h1 class="page-title">SUNO PROMPT BUILDER</h1>
-                <p class="page-subtitle">Create professional music prompts for SUNO AI with customizable styles, instruments, and lyrics guidance.</p>
-            </div>
-            <nav class="header-nav">
-                <a href="#settings" class="nav-link">Settings</a>
-                <a href="#output" class="nav-link">Output</a>
-                <a href="#templates" class="nav-link">Templates</a>
-                <a href="#presets" class="nav-link">Presets</a>
-                <a href="#history" class="nav-link">History</a>
-            </nav>
-        </header>
+    <!-- Page Header -->
+    <header class="page-header">
+        <div class="header-content">
+            <h1 class="page-title">SUNO PROMPT BUILDER</h1>
+            <p class="page-subtitle">Create professional music prompts for SUNO AI with customizable styles, instruments, and lyrics guidance.</p>
+        </div>
+        <nav class="header-nav">
+            <a href="#settings" class="nav-link">Settings</a>
+            <a href="#output" class="nav-link">Output</a>
+            <a href="#templates" class="nav-link">Templates</a>
+            <a href="#presets" class="nav-link">Presets</a>
+            <a href="#history" class="nav-link">History</a>
+        </nav>
+    </header>
 
+    <div class="container">
         <!-- Theme Toggle -->
         <button id="theme-toggle" class="theme-toggle" title="Toggle Dark Mode">
             <span class="theme-icon">🌙</span>
         </button>
 
         <!-- Left Panel: Settings -->
-        <aside class="panel left-panel">
+        <aside id="settings" class="panel left-panel">
             <div class="panel-header">
                 <h2>Settings</h2>
             </div>
@@ -47,7 +47,7 @@
         </aside>
 
         <!-- Center Panel: Output -->
-        <main class="panel center-panel">
+        <main id="output" class="panel center-panel">
             <div class="panel-header">
                 <h2>Prompt Output</h2>
                 <label class="live-preview-toggle">
@@ -126,7 +126,7 @@
         </main>
 
         <!-- Right Panel: Tips & History -->
-        <aside class="panel right-panel">
+        <aside id="right-panel" class="panel right-panel">
             <div class="panel-header">
                 <div class="tabs">
                     <button class="tab-btn active" data-tab="tips">Tips</button>
