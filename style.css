@@ -81,24 +81,34 @@ body {
 
 /* Page Header */
 .page-hero {
-    max-width: 1800px;
+    max-width: 1200px;
     margin: 0 auto var(--spacing-xl);
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
     gap: var(--spacing-lg);
+    align-items: stretch;
 }
 
 .page-header {
-    padding: var(--spacing-xl) var(--spacing-lg);
+    padding: var(--spacing-xl);
     border: 1px solid var(--border-color);
     background: var(--bg-secondary);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.hero-logo {
+    width: 140px;
+    height: auto;
+    filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.15));
 }
 
 .header-content {
-    text-align: center;
-    margin-bottom: var(--spacing-lg);
+    text-align: left;
+    margin: 0;
 }
 
 .page-title {
@@ -116,8 +126,6 @@ body {
     margin: 0;
     line-height: 1.5;
     max-width: 600px;
-    margin-left: auto;
-    margin-right: auto;
 }
 
 .header-nav {
@@ -1364,6 +1372,20 @@ kbd {
     .page-header {
         margin-bottom: 0;
         padding: var(--spacing-lg) var(--spacing-md);
+        align-items: center;
+        text-align: center;
+    }
+
+    .hero-logo {
+        margin: 0 auto;
+    }
+
+    .header-content {
+        text-align: center;
+    }
+
+    .hero-info {
+        padding: var(--spacing-lg);
     }
 
     .container {
@@ -1415,7 +1437,7 @@ kbd {
     }
 
     .header-content {
-        margin-bottom: var(--spacing-md);
+        margin-bottom: 0;
     }
 
     .page-title {
@@ -1424,16 +1446,8 @@ kbd {
 
     .page-subtitle {
         font-size: 14px;
-    }
-
-    .header-nav {
-        gap: var(--spacing-sm);
-        padding-top: var(--spacing-sm);
-    }
-
-    .nav-link {
-        font-size: 12px;
-        padding: var(--spacing-xs) var(--spacing-sm);
+        margin-left: auto;
+        margin-right: auto;
     }
 
     .container {
@@ -1457,7 +1471,8 @@ kbd {
         padding: var(--spacing-md);
     }
 
-    .tips-content {
+    .tips-content,
+    .hero-info {
         padding: var(--spacing-md);
     }
 
