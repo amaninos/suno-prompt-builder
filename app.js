@@ -1079,14 +1079,8 @@ class SunoPromptBuilder {
                     document.getElementById('settings').scrollIntoView({ behavior: 'smooth', block: 'start' });
                 } else if (target === 'output') {
                     document.getElementById('output').scrollIntoView({ behavior: 'smooth', block: 'start' });
-                } else if (target === 'templates' || target === 'presets' || target === 'history') {
-                    // Scroll to right panel and switch to the appropriate tab
+                } else if (target === 'right-panel') {
                     document.getElementById('right-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    // Switch to the appropriate tab
-                    const tabBtn = document.querySelector(`.tab-btn[data-tab="${target}"]`);
-                    if (tabBtn) {
-                        tabBtn.click();
-                    }
                 }
             });
         });
