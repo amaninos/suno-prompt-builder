@@ -41,23 +41,60 @@
                 </label>
             </div>
             <div class="output-container">
-                <div class="textarea-wrapper">
-                    <textarea 
-                        id="prompt-output" 
-                        class="prompt-textarea" 
-                        placeholder="Your generated prompt will appear here..."
-                        readonly
-                    ></textarea>
-                    <div class="character-counter">
-                        <span id="char-count">0</span> / 1000
+                <!-- Music/Styles Prompt -->
+                <div class="prompt-block">
+                    <div class="prompt-block-header">
+                        <h3>Styles</h3>
+                        <button id="copy-music-btn" class="btn-copy-inline" title="Copy Styles Prompt">
+                            <span class="copy-icon">📋</span>
+                        </button>
+                    </div>
+                    <div class="textarea-wrapper">
+                        <textarea 
+                            id="prompt-music" 
+                            class="prompt-textarea" 
+                            placeholder="Music styles, instruments, production settings will appear here..."
+                            readonly
+                        ></textarea>
+                        <div class="character-counter">
+                            <span id="char-count-music">0</span> / 1000
+                        </div>
                     </div>
                 </div>
+
+                <!-- Lyrics Prompt -->
+                <div class="prompt-block">
+                    <div class="prompt-block-header">
+                        <h3>Lyrics</h3>
+                        <button id="copy-lyrics-btn" class="btn-copy-inline" title="Copy Lyrics Prompt">
+                            <span class="copy-icon">📋</span>
+                        </button>
+                    </div>
+                    <div class="textarea-wrapper">
+                        <textarea 
+                            id="prompt-lyrics" 
+                            class="prompt-textarea" 
+                            placeholder="Lyrics guidance will appear here..."
+                            readonly
+                        ></textarea>
+                        <div class="character-counter">
+                            <span id="char-count-lyrics">0</span> / 200
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Legacy combined output (hidden, for backward compatibility) -->
+                <textarea 
+                    id="prompt-output" 
+                    style="display: none;"
+                ></textarea>
+
                 <div class="button-group">
                     <button id="generate-btn" class="btn btn-primary">Generate</button>
                     <button id="random-btn" class="btn btn-secondary random-btn" title="Generate Random Prompt">
                         <span class="dice-icon">🎲</span> Random
                     </button>
-                    <button id="copy-btn" class="btn btn-secondary">Copy</button>
+                    <button id="copy-btn" class="btn btn-secondary">Copy Both</button>
                     <button id="save-btn" class="btn btn-secondary">Save</button>
                     <button id="optimize-btn" class="btn btn-secondary">Optimize</button>
                     <div class="button-dropdown">

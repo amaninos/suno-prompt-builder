@@ -4,8 +4,12 @@ class SunoPromptBuilder {
     constructor() {
         this.data = {};
         this.formSections = document.getElementById('form-sections');
-        this.promptOutput = document.getElementById('prompt-output');
-        this.charCount = document.getElementById('char-count');
+        this.promptOutput = document.getElementById('prompt-output'); // Legacy, hidden
+        this.promptMusic = document.getElementById('prompt-music');
+        this.promptLyrics = document.getElementById('prompt-lyrics');
+        this.charCount = document.getElementById('char-count'); // Legacy
+        this.charCountMusic = document.getElementById('char-count-music');
+        this.charCountLyrics = document.getElementById('char-count-lyrics');
         this.generateBtn = document.getElementById('generate-btn');
         this.randomBtn = document.getElementById('random-btn');
         this.copyBtn = document.getElementById('copy-btn');
@@ -877,7 +881,15 @@ class SunoPromptBuilder {
     attachEventListeners() {
         this.generateBtn.addEventListener('click', () => this.generatePrompt());
         this.randomBtn.addEventListener('click', () => this.generateRandomPrompt());
-        this.copyBtn.addEventListener('click', () => this.copyPrompt());
+        this.copyBtn.addEventListener('click', () => this.copyBothPrompts());
+        const copyMusicBtn = document.getElementById('copy-music-btn');
+        const copyLyricsBtn = document.getElementById('copy-lyrics-btn');
+        if (copyMusicBtn) {
+            copyMusicBtn.addEventListener('click', () => this.copyMusicPrompt());
+        }
+        if (copyLyricsBtn) {
+            copyLyricsBtn.addEventListener('click', () => this.copyLyricsPrompt());
+        }
         this.saveBtn.addEventListener('click', () => this.savePrompt());
         this.optimizeBtn.addEventListener('click', () => this.optimizePrompt());
         this.resetBtn.addEventListener('click', () => this.resetForm());
@@ -1150,7 +1162,26 @@ class SunoPromptBuilder {
             parts.push(vocalPart);
         }
 
-        // Lyrics
+        // Structure & Dynamic Flow
+        if (values.structure_flow) {
+            parts.push(values.structure_flow);
+        }
+
+        // Production
+        if (values.mixing_style) {
+            parts.push(`${values.mixing_style} mixing`);
+        }
+        if (values.production_style) {
+            parts.push(`${values.production_style} production`);
+        }
+
+        // Join music parts with commas and clean up
+        let musicPrompt = parts.join(', ');
+        musicPrompt = musicPrompt.replace(/, ,/g, ',');
+        musicPrompt = musicPrompt.replace(/\s+/g, ' ');
+        musicPrompt = musicPrompt.trim();
+
+        // Lyrics prompt (separate)
         const lyricDetails = [];
         if (values.lyric_theme) {
             lyricDetails.push(`theme: ${values.lyric_theme}`);
@@ -1182,38 +1213,29 @@ class SunoPromptBuilder {
         if (values.lyric_custom_text) {
             lyricDetails.push(`custom snippet: "${values.lyric_custom_text}"`);
         }
-        if (lyricDetails.length > 0) {
-            parts.push(`Lyrics guidance -> ${lyricDetails.join('; ')}`);
-        }
-
-        // Structure & Dynamic Flow
-        if (values.structure_flow) {
-            parts.push(values.structure_flow);
-        }
-
-        // Production
-        if (values.mixing_style) {
-            parts.push(`${values.mixing_style} mixing`);
-        }
-        if (values.production_style) {
-            parts.push(`${values.production_style} production`);
-        }
-
-        // Join parts with commas and clean up
-        let prompt = parts.join(', ');
         
-        // Clean up common issues
-        prompt = prompt.replace(/, ,/g, ',');
-        prompt = prompt.replace(/\s+/g, ' ');
-        prompt = prompt.trim();
+        let lyricsPrompt = '';
+        if (lyricDetails.length > 0) {
+            lyricsPrompt = lyricDetails.join('; ');
+            lyricsPrompt = lyricsPrompt.replace(/\s+/g, ' ').trim();
+        }
 
-        this.promptOutput.value = prompt;
+        // Update both textareas
+        this.promptMusic.value = musicPrompt;
+        this.promptLyrics.value = lyricsPrompt;
+        
+        // Legacy combined output (for backward compatibility)
+        const combinedPrompt = lyricsPrompt 
+            ? `${musicPrompt}, Lyrics guidance -> ${lyricsPrompt}`
+            : musicPrompt;
+        this.promptOutput.value = combinedPrompt;
+        
         this.updateCharacterCounter();
         
         // Auto-save to history when prompt is generated (only if not from live preview)
         // We'll skip auto-save for live preview to avoid cluttering history
-        if (prompt.trim() && !this.isLivePreview) {
-            this.autoSaveToHistory(prompt);
+        if (combinedPrompt.trim() && !this.isLivePreview) {
+            this.autoSaveToHistory(combinedPrompt);
         }
         this.isLivePreview = false;
     }
@@ -1896,44 +1918,112 @@ class SunoPromptBuilder {
     }
 
     updateCharacterCounter() {
-        const count = this.promptOutput.value.length;
-        this.charCount.textContent = count;
+        // Music prompt counter
+        const musicCount = this.promptMusic.value.length;
+        this.charCountMusic.textContent = musicCount;
+        const musicCounter = this.charCountMusic.parentElement;
+        musicCounter.classList.remove('warning', 'error');
+        if (musicCount > 1000) {
+            musicCounter.classList.add('error');
+        } else if (musicCount > 900) {
+            musicCounter.classList.add('warning');
+        }
+
+        // Lyrics prompt counter
+        const lyricsCount = this.promptLyrics.value.length;
+        this.charCountLyrics.textContent = lyricsCount;
+        const lyricsCounter = this.charCountLyrics.parentElement;
+        lyricsCounter.classList.remove('warning', 'error');
+        if (lyricsCount > 200) {
+            lyricsCounter.classList.add('error');
+        } else if (lyricsCount > 180) {
+            lyricsCounter.classList.add('warning');
+        }
+
+        // Legacy counter (for backward compatibility)
+        if (this.charCount) {
+            const combinedCount = this.promptOutput.value.length;
+            this.charCount.textContent = combinedCount;
+        }
+    }
+
+    async copyMusicPrompt() {
+        const prompt = this.promptMusic.value;
+        if (!prompt) {
+            alert('No music prompt to copy. Please generate a prompt first.');
+            return;
+        }
+        await this.copyToClipboard(prompt, 'Music prompt copied!');
+    }
+
+    async copyLyricsPrompt() {
+        const prompt = this.promptLyrics.value;
+        if (!prompt) {
+            alert('No lyrics prompt to copy. Please generate a prompt first.');
+            return;
+        }
+        await this.copyToClipboard(prompt, 'Lyrics prompt copied!');
+    }
+
+    async copyBothPrompts() {
+        const musicPrompt = this.promptMusic.value;
+        const lyricsPrompt = this.promptLyrics.value;
         
-        const counter = this.charCount.parentElement;
-        counter.classList.remove('warning', 'error');
-        
-        if (count > 1000) {
-            counter.classList.add('error');
-        } else if (count > 900) {
-            counter.classList.add('warning');
+        if (!musicPrompt && !lyricsPrompt) {
+            alert('No prompts to copy. Please generate a prompt first.');
+            return;
+        }
+
+        let combined = '';
+        if (musicPrompt && lyricsPrompt) {
+            combined = `Styles: ${musicPrompt}\n\nLyrics: ${lyricsPrompt}`;
+        } else if (musicPrompt) {
+            combined = musicPrompt;
+        } else {
+            combined = lyricsPrompt;
+        }
+
+        await this.copyToClipboard(combined, 'Both prompts copied!');
+        const originalText = this.copyBtn.textContent;
+        this.copyBtn.textContent = 'Copied!';
+        this.copyBtn.style.background = '#34C759';
+        this.copyBtn.style.color = '#FFFFFF';
+        setTimeout(() => {
+            this.copyBtn.textContent = originalText;
+            this.copyBtn.style.background = '';
+            this.copyBtn.style.color = '';
+        }, 2000);
+    }
+
+    async copyToClipboard(text, successMessage) {
+        try {
+            await navigator.clipboard.writeText(text);
+            if (successMessage) {
+                // Visual feedback could be added here if needed
+            }
+        } catch (error) {
+            // Fallback for older browsers
+            const temp = document.createElement('textarea');
+            temp.value = text;
+            temp.style.position = 'fixed';
+            temp.style.opacity = '0';
+            document.body.appendChild(temp);
+            temp.select();
+            try {
+                document.execCommand('copy');
+                if (successMessage) {
+                    alert(successMessage);
+                }
+            } catch (err) {
+                alert('Copy failed. Please copy manually.');
+            }
+            document.body.removeChild(temp);
         }
     }
 
     async copyPrompt() {
-        const prompt = this.promptOutput.value;
-        if (!prompt) {
-            alert('No prompt to copy. Please generate a prompt first.');
-            return;
-        }
-
-        try {
-            await navigator.clipboard.writeText(prompt);
-            const originalText = this.copyBtn.textContent;
-            this.copyBtn.textContent = 'Copied!';
-            this.copyBtn.style.background = '#34C759';
-            this.copyBtn.style.color = '#FFFFFF';
-            
-            setTimeout(() => {
-                this.copyBtn.textContent = originalText;
-                this.copyBtn.style.background = '';
-                this.copyBtn.style.color = '';
-            }, 2000);
-        } catch (error) {
-            // Fallback for older browsers
-            this.promptOutput.select();
-            document.execCommand('copy');
-            alert('Prompt copied to clipboard!');
-        }
+        // Legacy function - redirects to copyBothPrompts
+        await this.copyBothPrompts();
     }
 
     resetForm() {
@@ -1946,6 +2036,8 @@ class SunoPromptBuilder {
             textFields.forEach(field => {
                 field.value = '';
             });
+            this.promptMusic.value = '';
+            this.promptLyrics.value = '';
             this.promptOutput.value = '';
             this.updateCharacterCounter();
             this.updateLyricDraftPreview();
