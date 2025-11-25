@@ -143,6 +143,36 @@ body {
     color: var(--text-primary);
 }
 
+.hero-info {
+    max-width: 1200px;
+    margin: 0 auto var(--spacing-xl);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    padding: var(--spacing-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.hero-text {
+    font-size: 16px;
+    color: var(--text-secondary);
+}
+
+.hero-points {
+    margin: 0;
+    padding-left: var(--spacing-lg);
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.hero-points li + li {
+    margin-top: var(--spacing-xs);
+}
+
 .container {
     display: grid;
     grid-template-columns: 350px 1.1fr 380px;
