@@ -1067,29 +1067,6 @@ class SunoPromptBuilder {
                 this.exportDropdown.classList.remove('active');
             }
         });
-
-        // Navigation links
-        const navLinks = document.querySelectorAll('.nav-link');
-        navLinks.forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                const target = link.getAttribute('href').substring(1); // Remove #
-                
-                if (target === 'settings') {
-                    document.getElementById('settings').scrollIntoView({ behavior: 'smooth', block: 'start' });
-                } else if (target === 'output') {
-                    document.getElementById('output').scrollIntoView({ behavior: 'smooth', block: 'start' });
-                } else if (target === 'templates' || target === 'presets' || target === 'history') {
-                    // Scroll to right panel and switch to the appropriate tab
-                    document.getElementById('right-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    // Switch to the appropriate tab
-                    const tabBtn = document.querySelector(`.tab-btn[data-tab="${target}"]`);
-                    if (tabBtn) {
-                        tabBtn.click();
-                    }
-                }
-            });
-        });
     }
 
     setupTabs() {

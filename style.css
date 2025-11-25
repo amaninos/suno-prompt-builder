@@ -775,21 +775,32 @@ select:hover, input[type="text"]:hover {
 /* Tabs */
 .tabs {
     display: flex;
-    gap: var(--spacing-xs);
+    gap: 4px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.tabs::-webkit-scrollbar {
+    display: none;
 }
 
 .tab-btn {
-    padding: var(--spacing-xs) var(--spacing-md);
+    padding: 6px 10px;
     border: none;
     background: transparent;
     color: var(--text-secondary);
     font-family: inherit;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 500;
     cursor: pointer;
     border-radius: 6px;
     transition: all 0.2s ease;
     position: relative;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .tab-btn:hover {
