@@ -145,7 +145,7 @@ body {
 
 .container {
     display: grid;
-    grid-template-columns: 350px 1fr 350px;
+    grid-template-columns: 350px 1.1fr 380px;
     gap: var(--spacing-lg);
     max-width: 1800px;
     margin: 0 auto;
@@ -1235,7 +1235,7 @@ kbd {
 /* Responsive Design */
 @media (max-width: 1200px) {
     .container {
-        grid-template-columns: 1fr 1.2fr 0.8fr;
+        grid-template-columns: 1fr 1.1fr 0.9fr;
     }
 }
 
