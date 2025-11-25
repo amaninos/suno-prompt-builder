@@ -863,6 +863,127 @@ select:hover, input[type="text"]:hover {
     overflow: hidden;
 }
 
+/* Presets */
+.presets-content {
+    padding: var(--spacing-lg);
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.presets-header {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: var(--spacing-md);
+}
+
+.presets-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.preset-category-header {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: var(--spacing-sm);
+    margin-bottom: var(--spacing-xs);
+    padding-left: var(--spacing-xs);
+}
+
+.preset-category-header:first-child {
+    margin-top: 0;
+}
+
+.preset-item {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    padding: var(--spacing-md);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s ease;
+}
+
+.preset-item:hover {
+    background: var(--bg-tertiary);
+    box-shadow: var(--shadow-sm);
+}
+
+.preset-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.preset-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.preset-meta {
+    font-size: 11px;
+    color: var(--text-tertiary);
+}
+
+.preset-actions {
+    display: flex;
+    gap: var(--spacing-xs);
+}
+
+.preset-action-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: auto;
+}
+
+.preset-action-btn:hover {
+    background: var(--bg-tertiary);
+    transform: translateY(-1px);
+}
+
+.preset-action-btn.load-btn:hover {
+    background: var(--text-primary);
+    color: var(--bg-secondary);
+    border-color: var(--text-primary);
+}
+
+.preset-action-btn.delete-btn:hover {
+    background: #FF3B30;
+    color: #FFFFFF;
+    border-color: #FF3B30;
+}
+
+.presets-empty {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--text-tertiary);
+}
+
+.presets-empty p {
+    margin: 0;
+    font-size: 14px;
+}
+
+.presets-empty-sub {
+    font-size: 12px;
+    margin-top: var(--spacing-xs);
+    color: var(--text-tertiary);
+}
+
 /* History */
 .history-content {
     padding: var(--spacing-lg);

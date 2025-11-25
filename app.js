@@ -20,6 +20,9 @@ class SunoPromptBuilder {
         this.historyEmpty = document.getElementById('history-empty');
         this.clearHistoryBtn = document.getElementById('clear-history-btn');
         this.templatesList = document.getElementById('templates-list');
+        this.presetsList = document.getElementById('presets-list');
+        this.presetsEmpty = document.getElementById('presets-empty');
+        this.savePresetBtn = document.getElementById('save-preset-btn');
         this.livePreviewToggle = document.getElementById('live-preview-toggle');
         this.livePreviewTimeout = null;
         this.analysisModal = document.getElementById('analysis-modal');
@@ -52,6 +55,7 @@ class SunoPromptBuilder {
         this.setupTabs();
         this.loadHistory();
         this.loadTemplates();
+        this.loadPresets();
         this.initTheme();
         this.setupKeyboardShortcuts();
     }
@@ -1053,6 +1057,10 @@ class SunoPromptBuilder {
         this.importBtn.addEventListener('click', () => this.importFile());
         this.importFileInput.addEventListener('change', (e) => this.handleImportFile(e));
         
+        if (this.savePresetBtn) {
+            this.savePresetBtn.addEventListener('click', () => this.savePreset());
+        }
+        
         // Close dropdown when clicking outside
         document.addEventListener('click', (e) => {
             if (!this.exportBtn.contains(e.target) && !this.exportDropdown.contains(e.target)) {
@@ -1940,8 +1948,10 @@ class SunoPromptBuilder {
     }
 
     exportAsJSON() {
-        const prompt = this.promptOutput.value;
-        if (!prompt) {
+        const musicPrompt = this.promptMusic.value;
+        const lyricsPrompt = this.promptLyrics.value;
+        
+        if (!musicPrompt && !lyricsPrompt) {
             alert('No prompt to export. Please generate a prompt first.');
             this.exportDropdown.classList.remove('active');
             return;
@@ -1949,10 +1959,11 @@ class SunoPromptBuilder {
 
         const values = this.getFormValues();
         const exportData = {
-            prompt: prompt,
+            musicPrompt: musicPrompt,
+            lyricsPrompt: lyricsPrompt,
             formValues: values,
             timestamp: new Date().toISOString(),
-            version: '1.0'
+            version: '2.0'
         };
 
         const dataStr = JSON.stringify(exportData, null, 2);
@@ -1968,14 +1979,24 @@ class SunoPromptBuilder {
     }
 
     exportAsText() {
-        const prompt = this.promptOutput.value;
-        if (!prompt) {
+        const musicPrompt = this.promptMusic.value;
+        const lyricsPrompt = this.promptLyrics.value;
+        
+        if (!musicPrompt && !lyricsPrompt) {
             alert('No prompt to export. Please generate a prompt first.');
             this.exportDropdown.classList.remove('active');
             return;
         }
 
-        const dataBlob = new Blob([prompt], { type: 'text/plain' });
+        let textContent = '';
+        if (musicPrompt) {
+            textContent += '=== STYLES ===\n' + musicPrompt + '\n\n';
+        }
+        if (lyricsPrompt) {
+            textContent += '=== LYRICS ===\n' + lyricsPrompt;
+        }
+
+        const dataBlob = new Blob([textContent], { type: 'text/plain' });
         const url = URL.createObjectURL(dataBlob);
         const link = document.createElement('a');
         link.href = url;
@@ -2016,24 +2037,98 @@ class SunoPromptBuilder {
                                         select.dispatchEvent(new Event('change'));
                                     }
                                 }
+                            } else {
+                                // Handle text inputs and textareas
+                                const input = document.getElementById(key);
+                                if (input) {
+                                    input.value = data.formValues[key] || '';
+                                }
                             }
                         });
                         
+                        // Handle BPM slider
+                        if (data.formValues.bpm) {
+                            const bpmSlider = document.getElementById('bpm-slider');
+                            if (bpmSlider) {
+                                bpmSlider.value = data.formValues.bpm;
+                                const bpmValue = document.getElementById('bpm-value');
+                                if (bpmValue) {
+                                    bpmValue.textContent = `${data.formValues.bpm} BPM`;
+                                }
+                            }
+                        }
+                        
                         // Wait a bit for world music to populate, then generate
                         setTimeout(() => {
-                            if (data.prompt) {
+                            // New format (v2.0): split prompts
+                            if (data.musicPrompt !== undefined || data.lyricsPrompt !== undefined) {
+                                this.promptMusic.value = data.musicPrompt || '';
+                                this.promptLyrics.value = data.lyricsPrompt || '';
+                                // Update legacy combined prompt
+                                const combined = data.lyricsPrompt 
+                                    ? `${data.musicPrompt || ''}, Lyrics guidance -> ${data.lyricsPrompt}`
+                                    : (data.musicPrompt || '');
+                                this.promptOutput.value = combined;
+                            } else if (data.prompt) {
+                                // Legacy format: combined prompt
                                 this.promptOutput.value = data.prompt;
+                                // Try to split if possible (basic attempt)
+                                const parts = data.prompt.split('Lyrics guidance ->');
+                                if (parts.length > 1) {
+                                    this.promptMusic.value = parts[0].replace(/,\s*$/, '').trim();
+                                    this.promptLyrics.value = parts[1].trim();
+                                } else {
+                                    this.promptMusic.value = data.prompt;
+                                    this.promptLyrics.value = '';
+                                }
                             } else {
                                 this.generatePrompt();
                             }
                             this.updateCharacterCounter();
+                            this.updateLyricDraftPreview();
                         }, 300);
                     } else if (data.prompt) {
+                        // Legacy: only prompt, no form values
                         this.promptOutput.value = data.prompt;
+                        const parts = data.prompt.split('Lyrics guidance ->');
+                        if (parts.length > 1) {
+                            this.promptMusic.value = parts[0].replace(/,\s*$/, '').trim();
+                            this.promptLyrics.value = parts[1].trim();
+                        } else {
+                            this.promptMusic.value = data.prompt;
+                            this.promptLyrics.value = '';
+                        }
+                        this.updateCharacterCounter();
+                    } else if (data.musicPrompt !== undefined || data.lyricsPrompt !== undefined) {
+                        // New format: only prompts, no form values
+                        this.promptMusic.value = data.musicPrompt || '';
+                        this.promptLyrics.value = data.lyricsPrompt || '';
                         this.updateCharacterCounter();
                     }
                 } else {
-                    // Plain text file
+                    // Plain text file - try to parse sections
+                    const lines = content.split('\n');
+                    let currentSection = null;
+                    let musicText = '';
+                    let lyricsText = '';
+                    
+                    lines.forEach(line => {
+                        if (line.includes('=== STYLES ===')) {
+                            currentSection = 'music';
+                        } else if (line.includes('=== LYRICS ===')) {
+                            currentSection = 'lyrics';
+                        } else if (currentSection === 'music') {
+                            musicText += line + '\n';
+                        } else if (currentSection === 'lyrics') {
+                            lyricsText += line + '\n';
+                        } else {
+                            // No section header, assume it's all music
+                            musicText += line + '\n';
+                        }
+                    });
+                    
+                    this.promptMusic.value = musicText.trim();
+                    this.promptLyrics.value = lyricsText.trim();
                     this.promptOutput.value = content;
                     this.updateCharacterCounter();
                 }
@@ -2472,6 +2567,201 @@ class SunoPromptBuilder {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    // Presets Functions
+    getPresets() {
+        const presets = localStorage.getItem('sunoPresets');
+        return presets ? JSON.parse(presets) : [];
+    }
+
+    savePresets(presets) {
+        localStorage.setItem('sunoPresets', JSON.stringify(presets));
+    }
+
+    savePreset() {
+        const musicPrompt = this.promptMusic.value;
+        const lyricsPrompt = this.promptLyrics.value;
+        const formValues = this.getFormValues();
+        
+        if (!musicPrompt && !lyricsPrompt && Object.keys(formValues).length === 0) {
+            alert('No settings to save. Please configure some options first.');
+            return;
+        }
+
+        const name = prompt('Enter a name for this preset:');
+        if (!name || !name.trim()) {
+            return;
+        }
+
+        const category = prompt('Enter a category (optional, e.g., "Electronic", "Turkish", "Experimental"):') || 'General';
+
+        const presets = this.getPresets();
+        const newPreset = {
+            id: Date.now(),
+            name: name.trim(),
+            category: category.trim() || 'General',
+            musicPrompt: musicPrompt,
+            lyricsPrompt: lyricsPrompt,
+            formValues: formValues,
+            timestamp: new Date().toISOString()
+        };
+
+        presets.push(newPreset);
+        this.savePresets(presets);
+        this.loadPresets();
+        
+        alert(`Preset "${name}" saved successfully!`);
+    }
+
+    loadPresets() {
+        const presets = this.getPresets();
+        
+        if (!this.presetsList || !this.presetsEmpty) return;
+
+        this.presetsList.innerHTML = '';
+        
+        if (presets.length === 0) {
+            this.presetsEmpty.style.display = 'block';
+            return;
+        }
+
+        this.presetsEmpty.style.display = 'none';
+
+        // Group by category
+        const grouped = {};
+        presets.forEach(preset => {
+            const cat = preset.category || 'General';
+            if (!grouped[cat]) {
+                grouped[cat] = [];
+            }
+            grouped[cat].push(preset);
+        });
+
+        // Render by category
+        Object.keys(grouped).sort().forEach(category => {
+            const categoryHeader = document.createElement('div');
+            categoryHeader.className = 'preset-category-header';
+            categoryHeader.textContent = category;
+            this.presetsList.appendChild(categoryHeader);
+
+            grouped[category].forEach(preset => {
+                const presetItem = document.createElement('div');
+                presetItem.className = 'preset-item';
+                presetItem.dataset.presetId = preset.id;
+
+                const presetInfo = document.createElement('div');
+                presetInfo.className = 'preset-info';
+                
+                const presetName = document.createElement('div');
+                presetName.className = 'preset-name';
+                presetName.textContent = preset.name;
+                
+                const presetMeta = document.createElement('div');
+                presetMeta.className = 'preset-meta';
+                const date = new Date(preset.timestamp);
+                presetMeta.textContent = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                
+                presetInfo.appendChild(presetName);
+                presetInfo.appendChild(presetMeta);
+
+                const presetActions = document.createElement('div');
+                presetActions.className = 'preset-actions';
+                
+                const loadBtn = document.createElement('button');
+                loadBtn.className = 'preset-action-btn load-btn';
+                loadBtn.title = 'Load preset';
+                loadBtn.textContent = 'Load';
+                loadBtn.addEventListener('click', () => this.loadPreset(preset.id));
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'preset-action-btn delete-btn';
+                deleteBtn.title = 'Delete preset';
+                deleteBtn.textContent = 'Delete';
+                deleteBtn.addEventListener('click', () => this.deletePreset(preset.id));
+                
+                presetActions.appendChild(loadBtn);
+                presetActions.appendChild(deleteBtn);
+
+                presetItem.appendChild(presetInfo);
+                presetItem.appendChild(presetActions);
+                this.presetsList.appendChild(presetItem);
+            });
+        });
+    }
+
+    loadPreset(presetId) {
+        const presets = this.getPresets();
+        const preset = presets.find(p => p.id === presetId);
+        
+        if (!preset) {
+            alert('Preset not found.');
+            return;
+        }
+
+        // Load form values
+        if (preset.formValues) {
+            Object.keys(preset.formValues).forEach(key => {
+                const select = document.getElementById(key);
+                if (select) {
+                    const optionIndex = Array.from(select.options).findIndex(
+                        opt => opt.value === preset.formValues[key]
+                    );
+                    if (optionIndex > 0) {
+                        select.selectedIndex = optionIndex;
+                        if (key.startsWith('world_')) {
+                            select.dispatchEvent(new Event('change'));
+                        }
+                    }
+                } else {
+                    const input = document.getElementById(key);
+                    if (input) {
+                        input.value = preset.formValues[key] || '';
+                    }
+                }
+            });
+            
+            // Handle BPM slider
+            if (preset.formValues.bpm) {
+                const bpmSlider = document.getElementById('bpm-slider');
+                if (bpmSlider) {
+                    bpmSlider.value = preset.formValues.bpm;
+                    const bpmValue = document.getElementById('bpm-value');
+                    if (bpmValue) {
+                        bpmValue.textContent = `${preset.formValues.bpm} BPM`;
+                    }
+                }
+            }
+        }
+
+        // Wait for world music to populate, then set prompts
+        setTimeout(() => {
+            if (preset.musicPrompt !== undefined) {
+                this.promptMusic.value = preset.musicPrompt;
+            }
+            if (preset.lyricsPrompt !== undefined) {
+                this.promptLyrics.value = preset.lyricsPrompt;
+            }
+            
+            // If prompts not saved, generate from form values
+            if (!preset.musicPrompt && !preset.lyricsPrompt && preset.formValues) {
+                this.generatePrompt();
+            }
+            
+            this.updateCharacterCounter();
+            this.updateLyricDraftPreview();
+        }, 300);
+    }
+
+    deletePreset(presetId) {
+        if (!confirm('Are you sure you want to delete this preset?')) {
+            return;
+        }
+
+        const presets = this.getPresets();
+        const filtered = presets.filter(p => p.id !== presetId);
+        this.savePresets(filtered);
+        this.loadPresets();
     }
 
     // Templates Functions

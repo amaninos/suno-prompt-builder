@@ -116,6 +116,7 @@
                 <div class="tabs">
                     <button class="tab-btn active" data-tab="tips">Tips</button>
                     <button class="tab-btn" data-tab="templates">Templates</button>
+                    <button class="tab-btn" data-tab="presets">Presets</button>
                     <button class="tab-btn" data-tab="shortcuts">Shortcuts</button>
                     <button class="tab-btn" data-tab="history">History</button>
                 </div>
@@ -187,6 +188,20 @@
                     <p class="templates-intro">Click a template to load it into the form:</p>
                     <div id="templates-list" class="templates-list">
                         <!-- Templates will be inserted here -->
+                    </div>
+                </div>
+            </div>
+            <div class="tab-content" id="presets-content">
+                <div class="presets-content">
+                    <div class="presets-header">
+                        <button id="save-preset-btn" class="btn-small btn-primary">Save Current as Preset</button>
+                    </div>
+                    <div id="presets-list" class="presets-list">
+                        <!-- Presets will be inserted here -->
+                    </div>
+                    <div id="presets-empty" class="presets-empty">
+                        <p>No presets saved yet.</p>
+                        <p class="presets-empty-sub">Save your current settings as a preset for quick access.</p>
                     </div>
                 </div>
             </div>
