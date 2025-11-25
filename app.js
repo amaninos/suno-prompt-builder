@@ -1061,6 +1061,12 @@ class SunoPromptBuilder {
             this.savePresetBtn.addEventListener('click', () => this.savePreset());
         }
         
+        // Reset sections button
+        const resetSectionsBtn = document.getElementById('reset-sections-btn');
+        if (resetSectionsBtn) {
+            resetSectionsBtn.addEventListener('click', () => this.resetSections());
+        }
+        
         // Close dropdown when clicking outside
         document.addEventListener('click', (e) => {
             if (!this.exportBtn.contains(e.target) && !this.exportDropdown.contains(e.target)) {
@@ -2360,6 +2366,13 @@ class SunoPromptBuilder {
                 if (hideBtn) hideBtn.innerHTML = '👁️';
             }
         });
+    }
+
+    resetSections() {
+        if (confirm('Reset all section preferences? This will show all hidden sections and unpin all pinned sections.')) {
+            localStorage.removeItem('sunoSectionPreferences');
+            location.reload();
+        }
     }
 
     reorderSections() {
