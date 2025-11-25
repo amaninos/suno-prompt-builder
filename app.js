@@ -237,10 +237,42 @@ class SunoPromptBuilder {
         
         const header = document.createElement('div');
         header.className = 'form-section-header';
-        header.innerHTML = `
-            <h3>${title}</h3>
-            <span class="toggle-icon">▼</span>
-        `;
+        
+        const headerLeft = document.createElement('div');
+        headerLeft.className = 'section-header-left';
+        headerLeft.innerHTML = `<h3>${title}</h3>`;
+        
+        const headerRight = document.createElement('div');
+        headerRight.className = 'section-header-right';
+        
+        const pinBtn = document.createElement('button');
+        pinBtn.className = 'section-action-btn pin-btn';
+        pinBtn.title = 'Pin section to top';
+        pinBtn.innerHTML = '📌';
+        pinBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.togglePinSection(title);
+        });
+        
+        const hideBtn = document.createElement('button');
+        hideBtn.className = 'section-action-btn hide-btn';
+        hideBtn.title = 'Hide section';
+        hideBtn.innerHTML = '👁️';
+        hideBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggleHideSection(title);
+        });
+        
+        const toggleIcon = document.createElement('span');
+        toggleIcon.className = 'toggle-icon';
+        toggleIcon.textContent = '▼';
+        
+        headerRight.appendChild(pinBtn);
+        headerRight.appendChild(hideBtn);
+        headerRight.appendChild(toggleIcon);
+        
+        header.appendChild(headerLeft);
+        header.appendChild(headerRight);
         
         const content = document.createElement('div');
         content.className = 'form-section-content';
@@ -282,6 +314,9 @@ class SunoPromptBuilder {
         section.appendChild(header);
         section.appendChild(content);
         this.formSections.appendChild(section);
+        
+        // Apply saved preferences
+        this.applySectionPreferences(section, title);
     }
 
     createLyricsSection() {
@@ -291,10 +326,42 @@ class SunoPromptBuilder {
 
         const header = document.createElement('div');
         header.className = 'form-section-header';
-        header.innerHTML = `
-            <h3>Lyrics Builder</h3>
-            <span class="toggle-icon">▼</span>
-        `;
+        
+        const headerLeft = document.createElement('div');
+        headerLeft.className = 'section-header-left';
+        headerLeft.innerHTML = `<h3>Lyrics Builder</h3>`;
+        
+        const headerRight = document.createElement('div');
+        headerRight.className = 'section-header-right';
+        
+        const pinBtn = document.createElement('button');
+        pinBtn.className = 'section-action-btn pin-btn';
+        pinBtn.title = 'Pin section to top';
+        pinBtn.innerHTML = '📌';
+        pinBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.togglePinSection('Lyrics Builder');
+        });
+        
+        const hideBtn = document.createElement('button');
+        hideBtn.className = 'section-action-btn hide-btn';
+        hideBtn.title = 'Hide section';
+        hideBtn.innerHTML = '👁️';
+        hideBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggleHideSection('Lyrics Builder');
+        });
+        
+        const toggleIcon = document.createElement('span');
+        toggleIcon.className = 'toggle-icon';
+        toggleIcon.textContent = '▼';
+        
+        headerRight.appendChild(pinBtn);
+        headerRight.appendChild(hideBtn);
+        headerRight.appendChild(toggleIcon);
+        
+        header.appendChild(headerLeft);
+        header.appendChild(headerRight);
 
         const content = document.createElement('div');
         content.className = 'form-section-content';
@@ -478,18 +545,54 @@ class SunoPromptBuilder {
         section.appendChild(header);
         section.appendChild(content);
         this.formSections.appendChild(section);
+        
+        // Apply saved preferences
+        this.applySectionPreferences(section, 'Lyrics Builder');
     }
 
     createTempoKeySection() {
         const section = document.createElement('div');
         section.className = 'form-section';
+        section.dataset.sectionTitle = 'Tempo & Key';
         
         const header = document.createElement('div');
         header.className = 'form-section-header';
-        header.innerHTML = `
-            <h3>Tempo & Key</h3>
-            <span class="toggle-icon">▼</span>
-        `;
+        
+        const headerLeft = document.createElement('div');
+        headerLeft.className = 'section-header-left';
+        headerLeft.innerHTML = `<h3>Tempo & Key</h3>`;
+        
+        const headerRight = document.createElement('div');
+        headerRight.className = 'section-header-right';
+        
+        const pinBtn = document.createElement('button');
+        pinBtn.className = 'section-action-btn pin-btn';
+        pinBtn.title = 'Pin section to top';
+        pinBtn.innerHTML = '📌';
+        pinBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.togglePinSection('Tempo & Key');
+        });
+        
+        const hideBtn = document.createElement('button');
+        hideBtn.className = 'section-action-btn hide-btn';
+        hideBtn.title = 'Hide section';
+        hideBtn.innerHTML = '👁️';
+        hideBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggleHideSection('Tempo & Key');
+        });
+        
+        const toggleIcon = document.createElement('span');
+        toggleIcon.className = 'toggle-icon';
+        toggleIcon.textContent = '▼';
+        
+        headerRight.appendChild(pinBtn);
+        headerRight.appendChild(hideBtn);
+        headerRight.appendChild(toggleIcon);
+        
+        header.appendChild(headerLeft);
+        header.appendChild(headerRight);
         
         const content = document.createElement('div');
         content.className = 'form-section-content';
@@ -599,18 +702,54 @@ class SunoPromptBuilder {
         section.appendChild(header);
         section.appendChild(content);
         this.formSections.appendChild(section);
+        
+        // Apply saved preferences
+        this.applySectionPreferences(section, 'Tempo & Key');
     }
 
     createWorldMusicSection() {
         const section = document.createElement('div');
         section.className = 'form-section';
+        section.dataset.sectionTitle = 'World Music';
         
         const header = document.createElement('div');
         header.className = 'form-section-header';
-        header.innerHTML = `
-            <h3>World Music</h3>
-            <span class="toggle-icon">▼</span>
-        `;
+        
+        const headerLeft = document.createElement('div');
+        headerLeft.className = 'section-header-left';
+        headerLeft.innerHTML = `<h3>World Music</h3>`;
+        
+        const headerRight = document.createElement('div');
+        headerRight.className = 'section-header-right';
+        
+        const pinBtn = document.createElement('button');
+        pinBtn.className = 'section-action-btn pin-btn';
+        pinBtn.title = 'Pin section to top';
+        pinBtn.innerHTML = '📌';
+        pinBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.togglePinSection('World Music');
+        });
+        
+        const hideBtn = document.createElement('button');
+        hideBtn.className = 'section-action-btn hide-btn';
+        hideBtn.title = 'Hide section';
+        hideBtn.innerHTML = '👁️';
+        hideBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggleHideSection('World Music');
+        });
+        
+        const toggleIcon = document.createElement('span');
+        toggleIcon.className = 'toggle-icon';
+        toggleIcon.textContent = '▼';
+        
+        headerRight.appendChild(pinBtn);
+        headerRight.appendChild(hideBtn);
+        headerRight.appendChild(toggleIcon);
+        
+        header.appendChild(headerLeft);
+        header.appendChild(headerRight);
         
         const content = document.createElement('div');
         content.className = 'form-section-content';
@@ -876,6 +1015,9 @@ class SunoPromptBuilder {
         section.appendChild(header);
         section.appendChild(content);
         this.formSections.appendChild(section);
+        
+        // Apply saved preferences
+        this.applySectionPreferences(section, 'World Music');
     }
 
     attachEventListeners() {
@@ -2042,6 +2184,119 @@ class SunoPromptBuilder {
             this.updateCharacterCounter();
             this.updateLyricDraftPreview();
         }
+    }
+
+    // Section Pin/Hide Functions
+    getSectionPreferences() {
+        const prefs = localStorage.getItem('sunoSectionPreferences');
+        return prefs ? JSON.parse(prefs) : { pinned: [], hidden: [] };
+    }
+
+    saveSectionPreferences(prefs) {
+        localStorage.setItem('sunoSectionPreferences', JSON.stringify(prefs));
+    }
+
+    togglePinSection(title) {
+        const prefs = this.getSectionPreferences();
+        const index = prefs.pinned.indexOf(title);
+        
+        if (index > -1) {
+            prefs.pinned.splice(index, 1);
+        } else {
+            prefs.pinned.push(title);
+        }
+        
+        this.saveSectionPreferences(prefs);
+        this.reorderSections();
+    }
+
+    toggleHideSection(title) {
+        const prefs = this.getSectionPreferences();
+        const index = prefs.hidden.indexOf(title);
+        
+        if (index > -1) {
+            prefs.hidden.splice(index, 1);
+        } else {
+            prefs.hidden.push(title);
+        }
+        
+        this.saveSectionPreferences(prefs);
+        this.applySectionVisibility();
+    }
+
+    applySectionPreferences(section, title) {
+        const prefs = this.getSectionPreferences();
+        const header = section.querySelector('.form-section-header');
+        const pinBtn = header?.querySelector('.pin-btn');
+        const hideBtn = header?.querySelector('.hide-btn');
+        
+        // Apply pin state
+        if (prefs.pinned.includes(title)) {
+            section.classList.add('pinned');
+            if (pinBtn) pinBtn.style.opacity = '1';
+        } else {
+            section.classList.remove('pinned');
+            if (pinBtn) pinBtn.style.opacity = '0.5';
+        }
+        
+        // Apply hide state
+        if (prefs.hidden.includes(title)) {
+            section.style.display = 'none';
+            if (hideBtn) hideBtn.innerHTML = '👁️‍🗨️';
+        } else {
+            section.style.display = '';
+            if (hideBtn) hideBtn.innerHTML = '👁️';
+        }
+    }
+
+    applySectionVisibility() {
+        const prefs = this.getSectionPreferences();
+        const sections = document.querySelectorAll('.form-section');
+        
+        sections.forEach(section => {
+            const title = section.dataset.sectionTitle;
+            const hideBtn = section.querySelector('.hide-btn');
+            
+            if (prefs.hidden.includes(title)) {
+                section.style.display = 'none';
+                if (hideBtn) hideBtn.innerHTML = '👁️‍🗨️';
+            } else {
+                section.style.display = '';
+                if (hideBtn) hideBtn.innerHTML = '👁️';
+            }
+        });
+    }
+
+    reorderSections() {
+        const prefs = this.getSectionPreferences();
+        const sections = Array.from(document.querySelectorAll('.form-section'));
+        const pinnedSections = [];
+        const unpinnedSections = [];
+        
+        sections.forEach(section => {
+            const title = section.dataset.sectionTitle;
+            if (prefs.pinned.includes(title)) {
+                section.classList.add('pinned');
+                pinnedSections.push(section);
+            } else {
+                section.classList.remove('pinned');
+                unpinnedSections.push(section);
+            }
+        });
+        
+        // Clear and re-append: pinned first, then unpinned
+        this.formSections.innerHTML = '';
+        pinnedSections.forEach(section => this.formSections.appendChild(section));
+        unpinnedSections.forEach(section => this.formSections.appendChild(section));
+        
+        // Update pin button states
+        sections.forEach(section => {
+            const title = section.dataset.sectionTitle;
+            const pinBtn = section.querySelector('.pin-btn');
+            if (pinBtn) {
+                pinBtn.style.opacity = prefs.pinned.includes(title) ? '1' : '0.5';
+            }
+        });
     }
 
     // History & Favorites Functions
