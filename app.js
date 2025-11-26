@@ -16,6 +16,7 @@ class SunoPromptBuilder {
         this.saveBtn = document.getElementById('save-btn');
         this.optimizeBtn = document.getElementById('optimize-btn');
         this.resetBtn = document.getElementById('reset-btn');
+        this.aiAssistBtn = document.getElementById('ai-assist-btn');
         this.historyList = document.getElementById('history-list');
         this.historyEmpty = document.getElementById('history-empty');
         this.clearHistoryBtn = document.getElementById('clear-history-btn');
@@ -25,6 +26,8 @@ class SunoPromptBuilder {
         this.savePresetBtn = document.getElementById('save-preset-btn');
         this.livePreviewToggle = document.getElementById('live-preview-toggle');
         this.livePreviewTimeout = null;
+        this.settingsSearch = document.getElementById('settings-search');
+        this.clearSearchBtn = document.getElementById('clear-search-btn');
         this.analysisModal = document.getElementById('analysis-modal');
         this.closeAnalysisModal = document.getElementById('close-analysis-modal');
         this.cancelAnalysisBtn = document.getElementById('cancel-analysis-btn');
@@ -37,13 +40,80 @@ class SunoPromptBuilder {
         this.importBtn = document.getElementById('import-btn');
         this.importFileInput = document.getElementById('import-file-input');
         this.exportDropdown = document.querySelector('.dropdown-menu');
+        this.shareBtn = document.getElementById('share-btn');
+        // Share dropdown is inside button-dropdown, need to find it after DOM loads
+        this.shareDropdown = null;
+        this.shareModal = document.getElementById('share-modal');
+        this.shareUrlInput = document.getElementById('share-url-input');
+        this.copyShareUrlBtn = document.getElementById('copy-share-url-btn');
+        this.closeShareModal = document.getElementById('close-share-modal');
         this.themeToggle = document.getElementById('theme-toggle');
+        this.visualEditorToggle = document.getElementById('visual-editor-toggle');
+        this.visualEditorModal = document.getElementById('visual-editor-modal');
+        this.closeVisualEditor = document.getElementById('close-visual-editor');
+        this.saveVisualSettings = document.getElementById('save-visual-settings');
+        this.resetVisualSettings = document.getElementById('reset-visual-settings');
         this.lyricSummaryBtn = null;
         this.lyricDraftOutput = null;
         this.lyricDraftCopyBtn = null;
         this.lyricDraftRegenBtn = null;
         this.currentLyricDraft = '';
         this.lyricPreviewTimeout = null;
+        this.draggedSection = null;
+        this.handleSectionDragStart = this.handleSectionDragStart.bind(this);
+        this.handleSectionDragOver = this.handleSectionDragOver.bind(this);
+        this.handleSectionDragEnd = this.handleSectionDragEnd.bind(this);
+        this.progressFill = document.getElementById('progress-fill');
+        this.progressPercentageEl = document.getElementById('progress-percentage');
+        this.progressMessageEl = document.getElementById('progress-message');
+        this.previewCombined = document.getElementById('preview-combined');
+        this.previewStats = document.getElementById('preview-stats');
+        this.presetFilterContainer = document.getElementById('preset-filter-buttons');
+        this.presetSearchInput = document.getElementById('preset-search-input');
+        this.presetGalleryGrid = document.getElementById('preset-gallery-grid');
+        this.presetGalleryEmpty = document.getElementById('preset-gallery-empty');
+        this.quickPresets = [];
+        this.quickPresetFilter = 'All';
+        this.quickPresetSearch = '';
+        this.quickPresetSearchTimeout = null;
+        this.progressConfig = [
+            { id: 'genre', label: 'Genre' },
+            { id: 'subgenre', label: 'Sub-Genre' },
+            { id: 'tempo', label: 'Tempo' },
+            { id: 'mood', label: 'Mood' },
+            { id: 'lead', label: 'Lead Instrument' },
+            { id: 'structure_flow', label: 'Structure & Flow' },
+            { id: 'mixing_style', label: 'Mixing Style' },
+            { id: 'production_style', label: 'Production Style' },
+            { id: 'lyric_theme', label: 'Lyric Theme' },
+            { id: 'lyric_emotion', label: 'Lyric Emotion' },
+            { id: 'lyric_structure', label: 'Lyric Structure' }
+        ];
+        this.progressListenersAttached = false;
+        
+        // Feedback system
+        this.feedbackModal = document.getElementById('feedback-modal');
+        this.closeFeedbackModal = document.getElementById('close-feedback-modal');
+        this.feedbackOptions = this.feedbackModal ? this.feedbackModal.querySelectorAll('.feedback-option') : [];
+        this.submitFeedbackBtn = document.getElementById('submit-feedback');
+        this.feedbackComment = document.getElementById('feedback-comment');
+        this.subtleFeedbackBtn = document.getElementById('quick-feedback-btn');
+        this.subtleFeedback = document.getElementById('subtle-feedback');
+        this.feedbackInlineCard = document.getElementById('feedback-inline-card');
+        this.feedbackInlineOptions = this.feedbackInlineCard ? this.feedbackInlineCard.querySelectorAll('.feedback-option') : null;
+        this.feedbackInlineComment = document.getElementById('feedback-inline-comment');
+        this.feedbackInlineInput = document.getElementById('feedback-inline-input');
+        this.feedbackInlineSubmit = document.getElementById('feedback-inline-submit');
+        this.dismissFeedbackInline = document.getElementById('dismiss-feedback-inline');
+        this.inlineFeedbackRating = null;
+        this.whatsNewToggle = document.getElementById('whats-new-toggle');
+        this.whatsNewModal = document.getElementById('whats-new-modal');
+        this.closeWhatsNewModalBtn = document.getElementById('close-whats-new-modal');
+        this.feedbackGiven = false;
+        this.usageCount = 0;
+        this.sessionStartTime = Date.now();
+        this.promptCopiedCount = 0;
+        this.promptSavedCount = 0;
         
         this.init();
     }
@@ -56,8 +126,24 @@ class SunoPromptBuilder {
         this.loadHistory();
         this.loadTemplates();
         this.loadPresets();
+        this.initPresetGallery();
         this.initTheme();
         this.setupKeyboardShortcuts();
+        this.initFeedbackSystem();
+        this.initInlineFeedbackCard();
+        this.initWhatsNewModal();
+        this.initSocialShareButtons();
+        this.initVisualEditor();
+        this.initSearch();
+        this.initFavorites();
+        this.trackUsage();
+        this.loadSharedPrompt();
+        
+        // Initialize share dropdown after a short delay to ensure DOM is ready
+        setTimeout(() => {
+            this.shareDropdown = document.querySelector('.share-dropdown');
+            this.initShareSystem();
+        }, 100);
     }
 
     async loadData() {
@@ -187,6 +273,11 @@ class SunoPromptBuilder {
         // Setup live preview after form is rendered
         this.setupLivePreview();
         this.setupLyricPreviewWatchers();
+        this.reorderSections();
+        this.initSectionDragAndDrop();
+        this.attachProgressListeners();
+        this.updateProgressIndicator();
+        this.updateAdvancedPreview();
     }
 
     getPlaceholderForField(fieldId) {
@@ -244,7 +335,18 @@ class SunoPromptBuilder {
         
         const headerLeft = document.createElement('div');
         headerLeft.className = 'section-header-left';
-        headerLeft.innerHTML = `<h3>${title}</h3>`;
+
+        const dragHandle = document.createElement('span');
+        dragHandle.className = 'section-drag-handle';
+        dragHandle.title = 'Drag to reorder';
+        dragHandle.innerHTML = '↕';
+        dragHandle.addEventListener('mousedown', (e) => e.stopPropagation());
+
+        const titleEl = document.createElement('h3');
+        titleEl.textContent = title;
+
+        headerLeft.appendChild(dragHandle);
+        headerLeft.appendChild(titleEl);
         
         const headerRight = document.createElement('div');
         headerRight.className = 'section-header-right';
@@ -1057,8 +1159,51 @@ class SunoPromptBuilder {
         this.importBtn.addEventListener('click', () => this.importFile());
         this.importFileInput.addEventListener('change', (e) => this.handleImportFile(e));
         
+        // Share system
+        if (this.shareBtn) {
+            this.shareBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.toggleShareDropdown(e);
+            });
+        } else {
+            console.error('Share button not found');
+        }
+        const shareUrlBtn = document.getElementById('share-url-btn');
+        const shareTwitterBtn = document.getElementById('share-twitter-btn');
+        const shareFacebookBtn = document.getElementById('share-facebook-btn');
+        const shareRedditBtn = document.getElementById('share-reddit-btn');
+        const shareLinkedinBtn = document.getElementById('share-linkedin-btn');
+        
+        if (shareUrlBtn) shareUrlBtn.addEventListener('click', () => this.showShareModal());
+        if (shareTwitterBtn) shareTwitterBtn.addEventListener('click', () => this.shareOnTwitter());
+        if (shareFacebookBtn) shareFacebookBtn.addEventListener('click', () => this.shareOnFacebook());
+        if (shareRedditBtn) shareRedditBtn.addEventListener('click', () => this.shareOnReddit());
+        if (shareLinkedinBtn) shareLinkedinBtn.addEventListener('click', () => this.shareOnLinkedIn());
+        
+        if (this.closeShareModal) {
+            this.closeShareModal.addEventListener('click', () => this.closeShareModalFunc());
+        }
+        if (this.copyShareUrlBtn) {
+            this.copyShareUrlBtn.addEventListener('click', () => this.copyShareUrl());
+        }
+        
+        // Modal share buttons
+        const shareTwitterModalBtn = document.getElementById('share-twitter-modal-btn');
+        const shareFacebookModalBtn = document.getElementById('share-facebook-modal-btn');
+        const shareRedditModalBtn = document.getElementById('share-reddit-modal-btn');
+        const shareLinkedinModalBtn = document.getElementById('share-linkedin-modal-btn');
+        
+        if (shareTwitterModalBtn) shareTwitterModalBtn.addEventListener('click', () => this.shareOnTwitter());
+        if (shareFacebookModalBtn) shareFacebookModalBtn.addEventListener('click', () => this.shareOnFacebook());
+        if (shareRedditModalBtn) shareRedditModalBtn.addEventListener('click', () => this.shareOnReddit());
+        if (shareLinkedinModalBtn) shareLinkedinModalBtn.addEventListener('click', () => this.shareOnLinkedIn());
+        
         if (this.savePresetBtn) {
             this.savePresetBtn.addEventListener('click', () => this.savePreset());
+        }
+
+        if (this.aiAssistBtn) {
+            this.aiAssistBtn.addEventListener('click', () => this.suggestWithAI());
         }
         
         // Reset sections button
@@ -1387,6 +1532,8 @@ class SunoPromptBuilder {
         this.promptOutput.value = combinedPrompt;
         
         this.updateCharacterCounter();
+        this.updateAdvancedPreview();
+        this.updateProgressIndicator();
         
         // Auto-save to history when prompt is generated (only if not from live preview)
         // We'll skip auto-save for live preview to avoid cluttering history
@@ -1745,6 +1892,7 @@ class SunoPromptBuilder {
         setTimeout(() => {
             this.generatePrompt();
             this.updateLyricDraftPreview();
+            this.updateProgressIndicator();
             
             // Visual feedback
             const originalText = this.randomBtn.innerHTML;
@@ -2197,6 +2345,7 @@ class SunoPromptBuilder {
             return;
         }
         await this.copyToClipboard(prompt, 'Music prompt copied!');
+        this.trackCopyAction();
     }
 
     async copyLyricsPrompt() {
@@ -2206,6 +2355,7 @@ class SunoPromptBuilder {
             return;
         }
         await this.copyToClipboard(prompt, 'Lyrics prompt copied!');
+        this.trackCopyAction();
     }
 
     async copyBothPrompts() {
@@ -2227,22 +2377,16 @@ class SunoPromptBuilder {
         }
 
         await this.copyToClipboard(combined, 'Both prompts copied!');
-        const originalText = this.copyBtn.textContent;
-        this.copyBtn.textContent = 'Copied!';
-        this.copyBtn.style.background = '#34C759';
-        this.copyBtn.style.color = '#FFFFFF';
-        setTimeout(() => {
-            this.copyBtn.textContent = originalText;
-            this.copyBtn.style.background = '';
-            this.copyBtn.style.color = '';
-        }, 2000);
+        
+        // Track usage silently
+        this.trackCopyAction();
     }
 
     async copyToClipboard(text, successMessage) {
         try {
             await navigator.clipboard.writeText(text);
             if (successMessage) {
-                // Visual feedback could be added here if needed
+                this.showToast(successMessage, 'success');
             }
         } catch (error) {
             // Fallback for older browsers
@@ -2255,10 +2399,10 @@ class SunoPromptBuilder {
             try {
                 document.execCommand('copy');
                 if (successMessage) {
-                    alert(successMessage);
+                    this.showToast(successMessage, 'success');
                 }
             } catch (err) {
-                alert('Copy failed. Please copy manually.');
+                this.showToast('Copy failed. Please copy manually.', 'error');
             }
             document.body.removeChild(temp);
         }
@@ -2284,6 +2428,7 @@ class SunoPromptBuilder {
             this.promptOutput.value = '';
             this.updateCharacterCounter();
             this.updateLyricDraftPreview();
+            this.updateProgressIndicator();
         }
     }
 
@@ -2295,6 +2440,22 @@ class SunoPromptBuilder {
 
     saveSectionPreferences(prefs) {
         localStorage.setItem('sunoSectionPreferences', JSON.stringify(prefs));
+    }
+
+    getSectionOrder() {
+        const order = localStorage.getItem('sunoSectionOrder');
+        return order ? JSON.parse(order) : [];
+    }
+
+    saveSectionOrder(order) {
+        localStorage.setItem('sunoSectionOrder', JSON.stringify(order));
+    }
+
+    saveCurrentSectionOrder() {
+        if (!this.formSections) return;
+        const sections = Array.from(this.formSections.querySelectorAll('.form-section'));
+        const order = sections.map(section => section.dataset.sectionTitle);
+        this.saveSectionOrder(order);
     }
 
     togglePinSection(title) {
@@ -2378,6 +2539,11 @@ class SunoPromptBuilder {
     reorderSections() {
         const prefs = this.getSectionPreferences();
         const sections = Array.from(document.querySelectorAll('.form-section'));
+        const savedOrder = this.getSectionOrder();
+        const orderIndex = (title) => {
+            const idx = savedOrder.indexOf(title);
+            return idx === -1 ? Number.MAX_SAFE_INTEGER : idx;
+        };
         const pinnedSections = [];
         const unpinnedSections = [];
         
@@ -2391,6 +2557,9 @@ class SunoPromptBuilder {
                 unpinnedSections.push(section);
             }
         });
+
+        pinnedSections.sort((a, b) => orderIndex(a.dataset.sectionTitle) - orderIndex(b.dataset.sectionTitle));
+        unpinnedSections.sort((a, b) => orderIndex(a.dataset.sectionTitle) - orderIndex(b.dataset.sectionTitle));
         
         // Clear and re-append: pinned first, then unpinned
         this.formSections.innerHTML = '';
@@ -2405,6 +2574,170 @@ class SunoPromptBuilder {
                 pinBtn.style.opacity = prefs.pinned.includes(title) ? '1' : '0.5';
             }
         });
+    }
+
+    attachProgressListeners() {
+        if (!this.formSections || this.progressListenersAttached) return;
+        const inputs = this.formSections.querySelectorAll('select, input[type="text"], textarea');
+        inputs.forEach(input => {
+            const eventName = input.tagName === 'SELECT' ? 'change' : 'input';
+            input.addEventListener(eventName, () => {
+                this.updateProgressIndicator();
+                this.updateAdvancedPreview();
+            });
+        });
+        this.progressListenersAttached = true;
+    }
+
+    updateProgressIndicator() {
+        if (!this.progressFill || !this.progressPercentageEl || !this.progressMessageEl) return;
+        const total = this.progressConfig.length;
+        if (total === 0) return;
+
+        let completed = 0;
+        const missing = [];
+
+        this.progressConfig.forEach(field => {
+            const el = document.getElementById(field.id);
+            if (!el) {
+                missing.push(field.label);
+                return;
+            }
+            const value = (el.value || '').trim();
+            if (value) {
+                completed++;
+            } else {
+                missing.push(field.label);
+            }
+        });
+
+        const percentage = Math.round((completed / total) * 100);
+        this.progressFill.style.width = `${percentage}%`;
+        this.progressPercentageEl.textContent = `${percentage}%`;
+
+        let message = '';
+        if (percentage >= 80 && missing.length === 0) {
+            message = 'Great! Your prompt is ready to go.';
+        } else if (missing.length === total) {
+            message = 'Select a genre to get started.';
+        } else {
+            const nextSteps = missing.slice(0, 3).join(', ');
+            message = `Next focus: ${nextSteps}`;
+        }
+
+        this.progressMessageEl.textContent = message;
+
+        this.progressFill.classList.remove('progress-low', 'progress-medium', 'progress-good');
+        if (percentage < 40) {
+            this.progressFill.classList.add('progress-low');
+        } else if (percentage < 80) {
+            this.progressFill.classList.add('progress-medium');
+        } else {
+            this.progressFill.classList.add('progress-good');
+        }
+    }
+
+    updateAdvancedPreview() {
+        if (!this.previewCombined) return;
+        const musicPrompt = (this.promptMusic.value || '').trim();
+        const lyricsPrompt = (this.promptLyrics.value || '').trim();
+
+        if (!musicPrompt && !lyricsPrompt) {
+            this.previewCombined.innerHTML = '<p class="preview-placeholder">Generate or type to see a highlighted preview of your prompt.</p>';
+            if (this.previewStats) this.previewStats.textContent = '0 characters';
+            return;
+        }
+
+        const sections = [];
+        if (musicPrompt) {
+            sections.push(`
+                <div class="preview-section">
+                    <span class="preview-label">Styles</span>
+                    <div class="preview-text">${this.escapeHtml(musicPrompt)}</div>
+                </div>
+            `);
+        }
+
+        if (lyricsPrompt) {
+            sections.push(`
+                <div class="preview-section">
+                    <span class="preview-label">Lyrics</span>
+                    <div class="preview-text">${this.escapeHtml(lyricsPrompt)}</div>
+                </div>
+            `);
+        }
+
+        this.previewCombined.innerHTML = sections.join('');
+        const totalChars = musicPrompt.length + lyricsPrompt.length;
+        if (this.previewStats) {
+            this.previewStats.textContent = `${totalChars} characters`;
+        }
+    }
+
+    initSectionDragAndDrop() {
+        if (!this.formSections) return;
+        const sections = this.formSections.querySelectorAll('.form-section');
+
+        if (!this.getSectionOrder().length) {
+            this.saveCurrentSectionOrder();
+        }
+
+        sections.forEach(section => {
+            if (section.dataset.dragInitialized === 'true') return;
+            section.dataset.dragInitialized = 'true';
+            section.setAttribute('draggable', 'true');
+            section.addEventListener('dragstart', this.handleSectionDragStart);
+            section.addEventListener('dragover', this.handleSectionDragOver);
+            section.addEventListener('dragend', this.handleSectionDragEnd);
+        });
+    }
+
+    handleSectionDragStart(e) {
+        const section = e.currentTarget;
+        const isDragHandle = e.target.classList.contains('section-drag-handle') || !!e.target.closest('.section-drag-handle');
+
+        if (!isDragHandle) {
+            e.preventDefault();
+            return;
+        }
+
+        if (section.classList.contains('pinned')) {
+            e.preventDefault();
+            this.showToast('Unpin this section to reorder it.', 'info');
+            return;
+        }
+
+        this.draggedSection = section;
+        section.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', section.dataset.sectionTitle || '');
+    }
+
+    handleSectionDragOver(e) {
+        if (!this.draggedSection) return;
+        const target = e.currentTarget;
+        if (target === this.draggedSection || target.classList.contains('pinned')) {
+            return;
+        }
+
+        e.preventDefault();
+        const bounding = target.getBoundingClientRect();
+        const offset = e.clientY - bounding.top;
+        const shouldInsertBefore = offset < bounding.height / 2;
+
+        if (shouldInsertBefore) {
+            this.formSections.insertBefore(this.draggedSection, target);
+        } else {
+            this.formSections.insertBefore(this.draggedSection, target.nextElementSibling);
+        }
+    }
+
+    handleSectionDragEnd() {
+        if (this.draggedSection) {
+            this.draggedSection.classList.remove('dragging');
+        }
+        this.draggedSection = null;
+        this.saveCurrentSectionOrder();
     }
 
     // History & Favorites Functions
@@ -2448,88 +2781,30 @@ class SunoPromptBuilder {
     }
 
     savePrompt() {
-        const prompt = this.promptOutput.value.trim();
-        if (!prompt) {
-            alert('No prompt to save. Please generate a prompt first.');
+        const musicPrompt = this.promptMusic.value;
+        const lyricsPrompt = this.promptLyrics.value;
+        
+        if (!musicPrompt && !lyricsPrompt) {
+            this.showToast('No prompt to save. Please generate a prompt first.', 'error');
             return;
         }
 
-        this.autoSaveToHistory(prompt);
-        
-        // Show feedback
-        const originalText = this.saveBtn.textContent;
-        this.saveBtn.textContent = 'Saved!';
-        this.saveBtn.style.background = '#34C759';
-        this.saveBtn.style.color = '#FFFFFF';
-        
-        setTimeout(() => {
-            this.saveBtn.textContent = originalText;
-            this.saveBtn.style.background = '';
-            this.saveBtn.style.color = '';
-        }, 2000);
-    }
-
-    loadHistory() {
-        const history = this.getHistory();
-        this.historyList.innerHTML = '';
-
-        if (history.length === 0) {
-            this.historyEmpty.style.display = 'flex';
-            return;
+        let combined = '';
+        if (musicPrompt && lyricsPrompt) {
+            combined = `Styles: ${musicPrompt}\n\nLyrics: ${lyricsPrompt}`;
+        } else if (musicPrompt) {
+            combined = musicPrompt;
+        } else {
+            combined = lyricsPrompt;
         }
 
-        this.historyEmpty.style.display = 'none';
-
-        // Sort: favorites first, then by date
-        const sortedHistory = [...history].sort((a, b) => {
-            if (a.favorite && !b.favorite) return -1;
-            if (!a.favorite && b.favorite) return 1;
-            return b.id - a.id;
-        });
-
-        sortedHistory.forEach(item => {
-            const historyItem = document.createElement('div');
-            historyItem.className = 'history-item';
-            historyItem.dataset.id = item.id;
-
-            const preview = item.prompt.length > 100 
-                ? item.prompt.substring(0, 100) + '...' 
-                : item.prompt;
-
-            historyItem.innerHTML = `
-                <div class="history-item-header">
-                    <span class="history-item-date">${item.date} ${item.time}</span>
-                    <div class="history-item-actions">
-                        <button class="history-item-btn favorite ${item.favorite ? 'active' : ''}" 
-                                data-action="favorite" title="Toggle favorite">
-                            ${item.favorite ? '★' : '☆'}
-                        </button>
-                        <button class="history-item-btn" data-action="use" title="Use this prompt">Use</button>
-                        <button class="history-item-btn" data-action="copy" title="Copy">Copy</button>
-                        <button class="history-item-btn" data-action="delete" title="Delete">×</button>
-                    </div>
-                </div>
-                <div class="history-item-preview">${this.escapeHtml(preview)}</div>
-            `;
-
-            // Attach event listeners
-            const buttons = historyItem.querySelectorAll('.history-item-btn');
-            buttons.forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const action = btn.getAttribute('data-action');
-                    this.handleHistoryAction(action, item, btn);
-                });
-            });
-
-            historyItem.addEventListener('click', () => {
-                this.promptOutput.value = item.prompt;
-                this.updateCharacterCounter();
-            });
-
-            this.historyList.appendChild(historyItem);
-        });
+        this.autoSaveToHistory(combined);
+        this.showToast('Prompt saved to history!', 'success');
+        
+        // Track usage silently
+        this.trackSaveAction();
     }
+
 
     handleHistoryAction(action, item, button) {
         const history = this.getHistory();
@@ -2539,23 +2814,24 @@ class SunoPromptBuilder {
             case 'favorite':
                 history[index].favorite = !history[index].favorite;
                 this.saveHistory(history);
-                this.loadHistory();
+                const filterBtn = document.getElementById('filter-favorites-btn');
+                const isFiltered = filterBtn?.classList.contains('active');
+                this.loadHistory(isFiltered);
+                this.showToast(history[index].favorite ? 'Added to favorites!' : 'Removed from favorites!', 'success');
                 break;
 
             case 'use':
                 this.promptOutput.value = item.prompt;
                 this.updateCharacterCounter();
+                this.updateAdvancedPreview();
+                this.updateProgressIndicator();
                 // Switch to output panel focus
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 break;
 
             case 'copy':
                 navigator.clipboard.writeText(item.prompt).then(() => {
-                    const originalText = button.textContent;
-                    button.textContent = '✓';
-                    setTimeout(() => {
-                        button.textContent = originalText;
-                    }, 1000);
+                    this.showToast('Prompt copied to clipboard!', 'success');
                 });
                 break;
 
@@ -2563,7 +2839,10 @@ class SunoPromptBuilder {
                 if (confirm('Delete this prompt from history?')) {
                     history.splice(index, 1);
                     this.saveHistory(history);
-                    this.loadHistory();
+                    const filterBtn = document.getElementById('filter-favorites-btn');
+                    const isFiltered = filterBtn?.classList.contains('active');
+                    this.loadHistory(isFiltered);
+                    this.showToast('Prompt deleted!', 'success');
                 }
                 break;
         }
@@ -2764,6 +3043,103 @@ class SunoPromptBuilder {
             this.updateCharacterCounter();
             this.updateLyricDraftPreview();
         }, 300);
+    }
+
+    suggestWithAI() {
+        if (!this.quickPresets || !this.quickPresets.length) {
+            this.quickPresets = this.getQuickPresets();
+        }
+
+        const formValues = this.getFormValues();
+        const suggestion = this.findBestQuickPreset(formValues);
+
+        if (!suggestion) {
+            this.showToast('No suitable suggestion found yet.', 'info');
+            return;
+        }
+
+        const appliedFields = this.applyPresetValues(suggestion, true);
+
+        if (!appliedFields.length) {
+            this.showToast('Everything already looks complete!', 'info');
+            return;
+        }
+
+        this.generatePrompt();
+        this.updateLyricDraftPreview();
+        this.updateAdvancedPreview();
+        this.updateProgressIndicator();
+
+        this.showToast(`Filled ${appliedFields.length} fields using ${suggestion.name}.`, 'success');
+    }
+
+    findBestQuickPreset(currentValues) {
+        let bestPreset = null;
+        let bestScore = 0;
+
+        this.quickPresets.forEach(preset => {
+            const presetValues = preset.values || {};
+            let score = 0;
+
+            Object.entries(presetValues).forEach(([key, value]) => {
+                const currentValue = currentValues[key];
+                if (currentValue && currentValue === value) {
+                    score += 2;
+                } else if (!currentValue) {
+                    score += 1;
+                }
+            });
+
+            if (score > bestScore) {
+                bestScore = score;
+                bestPreset = preset;
+            }
+        });
+
+        return bestPreset;
+    }
+
+    applyPresetValues(preset, fillOnlyEmpty = false) {
+        if (!preset || !preset.values) return [];
+        const applied = [];
+        const deferredWorldFields = [];
+
+        const setFieldValue = (key, value) => {
+            if (!value) return;
+            const element = document.getElementById(key);
+            if (!element) return;
+
+            if (fillOnlyEmpty && element.value) return;
+
+            if (element.tagName === 'SELECT') {
+                const optionIndex = Array.from(element.options).findIndex(opt => opt.value === value);
+                if (optionIndex > -1) {
+                    element.selectedIndex = optionIndex;
+                    element.dispatchEvent(new Event('change'));
+                    applied.push(key);
+                }
+            } else {
+                element.value = value;
+                element.dispatchEvent(new Event('input'));
+                applied.push(key);
+            }
+        };
+
+        Object.entries(preset.values).forEach(([key, value]) => {
+            if (key.startsWith('world_') && key !== 'world_region') {
+                deferredWorldFields.push({ key, value });
+            } else {
+                setFieldValue(key, value);
+            }
+        });
+
+        if (deferredWorldFields.length) {
+            setTimeout(() => {
+                deferredWorldFields.forEach(({ key, value }) => setFieldValue(key, value));
+            }, 200);
+        }
+
+        return applied;
     }
 
     deletePreset(presetId) {
@@ -3072,6 +3448,314 @@ class SunoPromptBuilder {
         }, 300);
     }
 
+    initPresetGallery() {
+        if (!this.presetGalleryGrid) {
+            return;
+        }
+        this.quickPresets = this.getQuickPresets();
+        this.quickPresetFilter = 'All';
+        this.quickPresetSearch = '';
+
+        if (this.presetFilterContainer) {
+            this.presetFilterContainer.innerHTML = '';
+            const categories = ['All', ...new Set(this.quickPresets.map(p => p.category))];
+            categories.forEach(category => {
+                const btn = document.createElement('button');
+                btn.className = `preset-filter-btn${category === 'All' ? ' active' : ''}`;
+                btn.textContent = category;
+                btn.dataset.filter = category;
+                btn.addEventListener('click', () => {
+                    this.quickPresetFilter = category;
+                    Array.from(this.presetFilterContainer.children).forEach(child => child.classList.remove('active'));
+                    btn.classList.add('active');
+                    this.renderQuickPresets();
+                });
+                this.presetFilterContainer.appendChild(btn);
+            });
+        }
+
+        if (this.presetSearchInput) {
+            this.presetSearchInput.value = '';
+            this.presetSearchInput.addEventListener('input', (e) => {
+                clearTimeout(this.quickPresetSearchTimeout);
+                const value = e.target.value.trim().toLowerCase();
+                this.quickPresetSearchTimeout = setTimeout(() => {
+                    this.quickPresetSearch = value;
+                    this.renderQuickPresets();
+                }, 200);
+            });
+        }
+
+        this.renderQuickPresets();
+    }
+
+    renderQuickPresets() {
+        if (!this.presetGalleryGrid) return;
+
+        let presets = [...this.quickPresets];
+        if (this.quickPresetFilter && this.quickPresetFilter !== 'All') {
+            presets = presets.filter(preset => preset.category === this.quickPresetFilter);
+        }
+        if (this.quickPresetSearch) {
+            presets = presets.filter(preset => {
+                const haystack = `${preset.name} ${preset.description} ${(preset.tags || []).join(' ')}`.toLowerCase();
+                return haystack.includes(this.quickPresetSearch);
+            });
+        }
+
+        this.presetGalleryGrid.innerHTML = '';
+
+        if (!presets.length) {
+            if (this.presetGalleryEmpty) {
+                this.presetGalleryEmpty.style.display = 'block';
+            }
+            return;
+        }
+        if (this.presetGalleryEmpty) {
+            this.presetGalleryEmpty.style.display = 'none';
+        }
+
+        presets.forEach(preset => {
+            const card = document.createElement('div');
+            card.className = 'preset-card';
+
+            const header = document.createElement('div');
+            header.className = 'preset-card-header';
+
+            const titleWrap = document.createElement('div');
+            const title = document.createElement('h4');
+            title.textContent = preset.name;
+            const desc = document.createElement('p');
+            desc.className = 'preset-card-description';
+            desc.textContent = preset.description;
+            titleWrap.appendChild(title);
+            titleWrap.appendChild(desc);
+
+            const category = document.createElement('span');
+            category.className = 'preset-card-category';
+            category.textContent = preset.category;
+
+            header.appendChild(titleWrap);
+            header.appendChild(category);
+            card.appendChild(header);
+
+            if (preset.tags && preset.tags.length) {
+                const tagsWrap = document.createElement('div');
+                tagsWrap.className = 'preset-card-tags';
+                preset.tags.forEach(tag => {
+                    const tagEl = document.createElement('span');
+                    tagEl.className = 'preset-tag';
+                    tagEl.textContent = tag;
+                    tagsWrap.appendChild(tagEl);
+                });
+                card.appendChild(tagsWrap);
+            }
+
+            const footer = document.createElement('div');
+            footer.className = 'preset-card-footer';
+
+            const meta = document.createElement('span');
+            meta.className = 'preset-card-meta';
+            meta.textContent = preset.preview || '';
+
+            const applyBtn = document.createElement('button');
+            applyBtn.textContent = 'Apply';
+            applyBtn.addEventListener('click', () => this.applyQuickPreset(preset.id));
+
+            footer.appendChild(meta);
+            footer.appendChild(applyBtn);
+            card.appendChild(footer);
+
+            this.presetGalleryGrid.appendChild(card);
+        });
+    }
+
+    applyQuickPreset(presetId) {
+        const preset = this.quickPresets.find(item => item.id === presetId);
+        if (!preset) return;
+
+        if (preset.values) {
+            this.loadTemplate({ values: preset.values });
+        }
+
+        setTimeout(() => {
+            if (preset.musicPrompt) {
+                this.promptMusic.value = preset.musicPrompt;
+            }
+            if (preset.lyricsPrompt) {
+                this.promptLyrics.value = preset.lyricsPrompt;
+            }
+            this.updateCharacterCounter();
+            this.updateLyricDraftPreview();
+            this.updateAdvancedPreview();
+            this.updateProgressIndicator();
+            this.showToast(`Quick preset "${preset.name}" loaded`, 'success');
+        }, 350);
+    }
+
+    getQuickPresets() {
+        return [
+            {
+                id: 'cinematic-epic',
+                name: 'Epic Cinematic',
+                category: 'Cinematic',
+                description: 'Sweeping orchestra with pounding percussion and dramatic buildups.',
+                preview: 'Epic orchestral score with soaring strings.',
+                tags: ['dramatic', 'orchestral', 'film'],
+                values: {
+                    genre: 'Cinematic',
+                    tempo: 'Very Slow (40-60 BPM)',
+                    mood: 'Dramatic',
+                    harmony: 'Minor',
+                    lead: 'Violin',
+                    accompaniment: 'Strings',
+                    percussion: 'Cinematic Percussion',
+                    bass: 'Deep Sub Bass',
+                    mixing_style: 'Wide Stereo',
+                    production_style: 'Cinematic'
+                }
+            },
+            {
+                id: 'lofi-dreams',
+                name: 'Lo-fi Dreams',
+                category: 'Electronic',
+                description: 'Soft lo-fi hip hop for studying and late-night focus.',
+                preview: 'Chill lo-fi beats with vinyl textures.',
+                tags: ['lofi', 'chill', 'study'],
+                values: {
+                    genre: 'Lo-fi',
+                    subgenre: 'Jazz Lo-fi',
+                    tempo: 'Slow (60-80 BPM)',
+                    mood: 'Calm',
+                    harmony: 'Jazz Harmony',
+                    lead: 'Electric Piano',
+                    bass: 'Warm Analog Bass',
+                    percussion: 'Minimal Percussion',
+                    mixing_style: 'Lo-fi Aesthetic',
+                    production_style: 'Bedroom Production'
+                }
+            },
+            {
+                id: 'turkish-trad',
+                name: 'Turkish Tradition',
+                category: 'World',
+                description: 'Authentic Turkish makam arrangement with oud-led melodies.',
+                preview: 'Traditional Hicaz makam with hand percussion.',
+                tags: ['makam', 'world', 'acoustic'],
+                values: {
+                    turkish_music_style: 'Classical Turkish Music',
+                    makam: 'Hicaz',
+                    tempo: 'Slow (60-80 BPM)',
+                    mood: 'Melancholic',
+                    lead: 'Oud',
+                    accompaniment: 'Strings',
+                    percussion: 'Hand Percussion',
+                    mixing_style: 'Warm and Saturated',
+                    production_style: 'Traditional'
+                }
+            },
+            {
+                id: 'afrobeats-sunset',
+                name: 'Afrobeats Sunset',
+                category: 'World',
+                description: 'Feel-good Afrobeats groove with vibrant percussion.',
+                preview: 'Upbeat Afrobeats with syncopated drums.',
+                tags: ['afrobeats', 'dance', 'joyful'],
+                values: {
+                    genre: 'Afrobeats',
+                    tempo: 'Upbeat (120-140 BPM)',
+                    mood: 'Joyful',
+                    rhythm: 'Syncopated',
+                    percussion: 'Hand Percussion',
+                    bass: '808 Style',
+                    lead: 'Synthesizer',
+                    mixing_style: 'Bright and Crisp',
+                    production_style: 'Modern Digital'
+                }
+            },
+            {
+                id: 'indie-sunrise',
+                name: 'Indie Sunrise',
+                category: 'Pop',
+                description: 'Organic indie pop with jangly guitars and uplifting mood.',
+                preview: 'Indie pop anthem with guitars and strings.',
+                tags: ['indie', 'uplifting', 'organic'],
+                values: {
+                    genre: 'Indie',
+                    subgenre: 'Indie Pop',
+                    tempo: 'Medium (100-120 BPM)',
+                    mood: 'Uplifting',
+                    lead: 'Guitar',
+                    accompaniment: 'Strings',
+                    bass: 'Acoustic Bass',
+                    percussion: 'Acoustic Drums',
+                    vocal_type: 'Female Lead',
+                    vocal_style: 'Smooth',
+                    mixing_style: 'Clean and Polished',
+                    production_style: 'Studio Recorded'
+                }
+            },
+            {
+                id: 'techno-industrial',
+                name: 'Industrial Techno',
+                category: 'Electronic',
+                description: 'Dark techno with relentless kick and metallic textures.',
+                preview: 'Driving techno groove built for clubs.',
+                tags: ['techno', 'dark', 'club'],
+                values: {
+                    genre: 'Electronic',
+                    subgenre: 'Techno',
+                    tempo: 'Upbeat (120-140 BPM)',
+                    mood: 'Intense',
+                    rhythm: '4/4 Steady',
+                    percussion: 'Electronic Drums',
+                    bass: 'Distorted Bass',
+                    lead: 'Synthesizer',
+                    mixing_style: 'Modern Digital',
+                    production_style: 'Professional Mix'
+                }
+            },
+            {
+                id: 'ambient-haze',
+                name: 'Ambient Haze',
+                category: 'Electronic',
+                description: 'Ethereal pads and evolving textures for meditation.',
+                preview: 'Floating ambient drones and pulses.',
+                tags: ['ambient', 'relax', 'meditation'],
+                values: {
+                    genre: 'Ambient',
+                    tempo: 'Very Slow (40-60 BPM)',
+                    mood: 'Peaceful',
+                    harmony: 'Modal',
+                    lead: 'Synth Pad',
+                    accompaniment: 'Atmospheric Textures',
+                    percussion: 'No Percussion',
+                    mixing_style: 'Wide Stereo',
+                    production_style: 'Studio Recorded'
+                }
+            },
+            {
+                id: 'latin-groove',
+                name: 'Latin Groove',
+                category: 'World',
+                description: 'Energetic Latin fusion with brass hits and percussion.',
+                preview: 'Danceable Latin groove with lively horns.',
+                tags: ['latin', 'dance', 'brass'],
+                values: {
+                    genre: 'World',
+                    world_region: 'Latin America',
+                    world_tradition: 'Afro-Cuban',
+                    world_instruments: 'Trumpet Section',
+                    tempo: 'Medium (100-120 BPM)',
+                    mood: 'Festive',
+                    percussion: 'Hand Percussion',
+                    mixing_style: 'Bright and Crisp',
+                    production_style: 'Live Performance'
+                }
+            }
+        ];
+    }
+
     // Theme Functions
     initTheme() {
         // Load saved theme preference
@@ -3094,13 +3778,24 @@ class SunoPromptBuilder {
     // Keyboard Shortcuts
     setupKeyboardShortcuts() {
         document.addEventListener('keydown', (e) => {
-            // Don't trigger shortcuts when typing in inputs
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+            const isInputFocused = ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName);
+            if (isInputFocused) return;
+
+            const isCmd = e.metaKey;
+            const isCtrl = e.ctrlKey;
+            const modifierPressed = isCmd || isCtrl;
+
+            // Special case: Cmd/Ctrl + Shift + R should be left to the browser (hard refresh)
+            if (modifierPressed && e.shiftKey && e.key.toLowerCase() === 'r') {
                 return;
             }
 
-            // Ctrl/Cmd combinations
-            if (e.ctrlKey || e.metaKey) {
+            // Don't interfere with any other Shift + modifier combinations
+            if (modifierPressed && e.shiftKey) {
+                return;
+            }
+
+            if (modifierPressed) {
                 switch (e.key.toLowerCase()) {
                     case 'g':
                         e.preventDefault();
@@ -3111,8 +3806,10 @@ class SunoPromptBuilder {
                         this.copyPrompt();
                         break;
                     case 'r':
+                        if (e.altKey) {
                         e.preventDefault();
                         this.generateRandomPrompt();
+                        }
                         break;
                     case 'o':
                         e.preventDefault();
@@ -3142,7 +3839,1108 @@ class SunoPromptBuilder {
                 if (this.exportDropdown.classList.contains('active')) {
                     this.exportDropdown.classList.remove('active');
                 }
+                if (this.shareDropdown && this.shareDropdown.classList.contains('active')) {
+                    this.shareDropdown.classList.remove('active');
+                }
+                if (this.feedbackModal && this.feedbackModal.classList.contains('active')) {
+                    this.closeFeedbackModalFunc();
+                }
+                if (this.shareModal && this.shareModal.classList.contains('active')) {
+                    this.closeShareModalFunc();
+                }
+                if (this.visualEditorModal && this.visualEditorModal.classList.contains('active')) {
+                    this.closeVisualEditorFunc();
+                }
             }
+        });
+    }
+
+    // ==================== FEEDBACK SYSTEM ====================
+    
+    initFeedbackSystem() {
+        // Check if feedback already given
+        const feedbackGiven = localStorage.getItem('sunoFeedbackGiven');
+        if (feedbackGiven === 'true') {
+            this.feedbackGiven = true;
+        }
+
+        // Load usage count
+        const storedCount = localStorage.getItem('sunoUsageCount');
+        this.usageCount = storedCount ? parseInt(storedCount) : 0;
+
+        // Event listeners for feedback modal
+        if (this.closeFeedbackModal) {
+            this.closeFeedbackModal.addEventListener('click', () => this.closeFeedbackModalFunc());
+        }
+
+        if (this.feedbackOptions && this.feedbackOptions.length > 0) {
+            this.feedbackOptions.forEach(option => {
+                option.addEventListener('click', (e) => {
+                    // Remove previous selection
+                    this.feedbackOptions.forEach(opt => opt.classList.remove('selected'));
+                    // Add selection to clicked option
+                    e.target.classList.add('selected');
+                    const rating = e.target.dataset.rating;
+                    this.handleFeedbackRating(rating);
+                });
+            });
+        }
+
+        if (this.submitFeedbackBtn) {
+            this.submitFeedbackBtn.addEventListener('click', () => this.submitFeedback());
+        }
+
+        if (this.subtleFeedbackBtn) {
+            this.subtleFeedbackBtn.addEventListener('click', () => this.showFeedbackModal());
+        }
+
+        // Collect silent usage analytics on page unload
+        this.setupExitIntent();
+    }
+
+    trackUsage() {
+        // Increment usage count silently
+        this.usageCount++;
+        localStorage.setItem('sunoUsageCount', this.usageCount.toString());
+
+        // Track session time
+        const sessionTime = Date.now() - this.sessionStartTime;
+        const storedSessionTime = localStorage.getItem('sunoTotalSessionTime');
+        const totalSessionTime = storedSessionTime ? parseInt(storedSessionTime) : 0;
+        localStorage.setItem('sunoTotalSessionTime', (totalSessionTime + sessionTime).toString());
+
+        // Check if we should show feedback
+        this.checkFeedbackTriggers();
+    }
+
+    trackCopyAction() {
+        this.promptCopiedCount++;
+        localStorage.setItem('sunoPromptCopiedCount', this.promptCopiedCount.toString());
+        this.checkFeedbackTriggers();
+    }
+
+    trackSaveAction() {
+        this.promptSavedCount++;
+        localStorage.setItem('sunoPromptSavedCount', this.promptSavedCount.toString());
+        this.checkFeedbackTriggers();
+    }
+
+    checkFeedbackTriggers() {
+        return; // Inline card replaces popup triggers
+    }
+
+    setupExitIntent() {
+        window.addEventListener('beforeunload', () => {
+            this.collectSilentFeedback();
+        });
+    }
+
+    collectSilentFeedback() {
+        // Collect usage data silently without bothering user
+        const feedbackData = {
+            usageCount: this.usageCount,
+            promptCopiedCount: this.promptCopiedCount,
+            promptSavedCount: this.promptSavedCount,
+            sessionTime: Date.now() - this.sessionStartTime,
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent,
+            screenSize: `${window.innerWidth}x${window.innerHeight}`
+        };
+
+        // Send to analytics or your backend (you can implement this)
+        this.sendFeedbackData(feedbackData, 'silent');
+    }
+
+    checkAndShowSubtleFeedback() {
+        return;
+    }
+
+    showFeedbackModal() {
+        if (this.feedbackGiven || !this.feedbackModal) return;
+        
+        this.feedbackModal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        
+        // Hide subtle feedback button
+        if (this.subtleFeedback) {
+            this.subtleFeedback.style.display = 'none';
+        }
+
+        // Close on background click
+        this.feedbackModal.addEventListener('click', (e) => {
+            if (e.target === this.feedbackModal) {
+                this.closeFeedbackModalFunc();
+            }
+        });
+    }
+
+    closeFeedbackModalFunc() {
+        if (this.feedbackModal) {
+            this.feedbackModal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    }
+
+    handleFeedbackRating(rating) {
+        // Show comment field for ratings 1-3 (negative feedback)
+        if (rating <= 3) {
+            const commentDiv = this.feedbackComment ? this.feedbackComment.parentElement : null;
+            if (commentDiv) {
+                commentDiv.style.display = 'block';
+            }
+        } else {
+            // For positive ratings (4-5), submit after a short delay
+            setTimeout(() => {
+                this.submitFeedback(rating);
+            }, 500);
+            const commentDiv = this.feedbackComment ? this.feedbackComment.parentElement : null;
+            if (commentDiv) {
+                commentDiv.style.display = 'none';
+            }
+        }
+    }
+
+    submitFeedback(rating = null) {
+        const selectedRating = rating || (this.feedbackModal ? this.feedbackModal.querySelector('.feedback-option.selected')?.dataset.rating : null);
+        const comment = this.feedbackComment ? this.feedbackComment.value : '';
+
+        if (!selectedRating) {
+            const selected = this.feedbackModal ? this.feedbackModal.querySelector('.feedback-option.selected') : null;
+            if (!selected) {
+                this.showToast('Please select a rating.', 'info');
+                return;
+            }
+        }
+
+        const feedbackData = {
+            rating: selectedRating || rating,
+            comment: comment,
+            usageCount: this.usageCount,
+            promptCopiedCount: this.promptCopiedCount,
+            promptSavedCount: this.promptSavedCount,
+            sessionTime: Date.now() - this.sessionStartTime,
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent,
+            screenSize: `${window.innerWidth}x${window.innerHeight}`
+        };
+
+        // Mark feedback as given
+        this.feedbackGiven = true;
+        localStorage.setItem('sunoFeedbackGiven', 'true');
+
+        // Send feedback data
+        this.sendFeedbackData(feedbackData, 'explicit');
+
+        // Close modal and show thank you
+        this.closeFeedbackModalFunc();
+        this.showThankYouMessage();
+    }
+
+    sendFeedbackData(data, type) {
+        // You can implement this to send to your backend/analytics
+        // For now, we'll store locally and you can collect later
+        
+        const storedFeedback = localStorage.getItem('sunoFeedbackData');
+        const feedbackArray = storedFeedback ? JSON.parse(storedFeedback) : [];
+        
+        feedbackArray.push({
+            ...data,
+            type: type // 'silent' or 'explicit'
+        });
+        
+        localStorage.setItem('sunoFeedbackData', JSON.stringify(feedbackArray));
+
+        // Optional: Send to Google Analytics or your backend
+        if (typeof gtag !== 'undefined') {
+            gtag('event', 'feedback_submitted', {
+                'rating': data.rating,
+                'type': type,
+                'usage_count': data.usageCount
+            });
+        }
+
+        // Optional: Send to your backend API
+        // fetch('/api/feedback', {
+        //     method: 'POST',
+        //     headers: { 'Content-Type': 'application/json' },
+        //     body: JSON.stringify(data)
+        // }).catch(err => console.error('Feedback send error:', err));
+    }
+
+    showThankYouMessage() {
+        // Show a subtle thank you message
+        const toast = document.createElement('div');
+        toast.className = 'feedback-toast';
+        toast.textContent = 'Thank you! Your feedback has been saved. 🙏';
+        toast.style.cssText = `
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 12px 20px;
+            box-shadow: var(--shadow-md);
+            z-index: 10000;
+            animation: slideIn 0.3s ease;
+        `;
+        
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => {
+                document.body.removeChild(toast);
+            }, 300);
+        }, 3000);
+    }
+
+    initInlineFeedbackCard() {
+        if (!this.feedbackInlineCard) return;
+
+        const inlineHidden = localStorage.getItem('sunoInlineFeedbackHidden');
+        if (inlineHidden === 'true') {
+            this.feedbackInlineCard.style.display = 'none';
+            return;
+        }
+
+        if (this.feedbackGiven) {
+            this.showInlineThankYou();
+            return;
+        }
+
+        if (this.feedbackInlineOptions) {
+            this.feedbackInlineOptions.forEach(option => {
+                option.addEventListener('click', () => this.handleInlineFeedbackRating(option));
+            });
+        }
+
+        if (this.feedbackInlineSubmit) {
+            this.feedbackInlineSubmit.addEventListener('click', () => this.submitInlineFeedback());
+        }
+
+        if (this.dismissFeedbackInline) {
+            this.dismissFeedbackInline.addEventListener('click', () => {
+                this.feedbackInlineCard.style.display = 'none';
+                localStorage.setItem('sunoInlineFeedbackHidden', 'true');
+            });
+        }
+    }
+
+    initWhatsNewModal() {
+        if (this.whatsNewToggle) {
+            this.whatsNewToggle.addEventListener('click', () => this.openWhatsNewModal());
+        }
+        if (this.closeWhatsNewModalBtn) {
+            this.closeWhatsNewModalBtn.addEventListener('click', () => this.closeWhatsNewModal());
+        }
+        if (this.whatsNewModal) {
+            this.whatsNewModal.addEventListener('click', (e) => {
+                if (e.target === this.whatsNewModal) {
+                    this.closeWhatsNewModal();
+                }
+            });
+        }
+    }
+
+    openWhatsNewModal() {
+        if (this.whatsNewModal) {
+            this.whatsNewModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+    }
+
+    closeWhatsNewModal() {
+        if (this.whatsNewModal) {
+            this.whatsNewModal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    }
+
+    handleInlineFeedbackRating(button) {
+        if (!button) return;
+        const rating = parseInt(button.dataset.rating, 10);
+        this.inlineFeedbackRating = rating;
+
+        if (this.feedbackInlineOptions) {
+            this.feedbackInlineOptions.forEach(option => option.classList.remove('selected'));
+        }
+        button.classList.add('selected');
+
+        if (this.feedbackInlineComment) {
+            if (rating <= 3) {
+                this.feedbackInlineComment.style.display = 'flex';
+            } else {
+                this.feedbackInlineComment.style.display = 'none';
+                if (this.feedbackInlineInput) {
+                    this.feedbackInlineInput.value = '';
+                }
+                setTimeout(() => this.submitInlineFeedback(), 400);
+            }
+        }
+    }
+
+    submitInlineFeedback() {
+        if (this.feedbackGiven) {
+            this.showInlineThankYou();
+            return;
+        }
+        if (!this.inlineFeedbackRating) {
+            this.showToast('Please select a rating first.', 'info');
+            return;
+        }
+
+        const comment = this.feedbackInlineInput ? this.feedbackInlineInput.value.trim() : '';
+        const feedbackData = {
+            rating: this.inlineFeedbackRating,
+            comment,
+            usageCount: this.usageCount,
+            promptCopiedCount: this.promptCopiedCount,
+            promptSavedCount: this.promptSavedCount,
+            sessionTime: Date.now() - this.sessionStartTime,
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent,
+            screenSize: `${window.innerWidth}x${window.innerHeight}`
+        };
+
+        this.feedbackGiven = true;
+        localStorage.setItem('sunoFeedbackGiven', 'true');
+        this.sendFeedbackData(feedbackData, 'inline');
+        this.showInlineThankYou();
+    }
+
+    showInlineThankYou() {
+        if (!this.feedbackInlineCard) return;
+        this.feedbackInlineCard.innerHTML = `
+            <div class="feedback-inline-thanks">
+                <h4>Thank you! 🙏</h4>
+                <p class="feedback-inline-text">Your feedback helps me improve the builder.</p>
+            </div>
+        `;
+    }
+
+    // ==================== SOCIAL SHARE BUTTONS ====================
+    
+    initSocialShareButtons() {
+        const currentUrl = encodeURIComponent(window.location.href);
+        const siteTitle = encodeURIComponent('Suno Prompt Builder - Create Professional Music Prompts for SUNO AI');
+        const siteDescription = encodeURIComponent('Create professional music prompts for SUNO AI with customizable styles, instruments, and lyrics guidance.');
+        
+        // Twitter/X
+        const twitterLink = document.getElementById('share-twitter-link');
+        if (twitterLink) {
+            twitterLink.href = `https://twitter.com/intent/tweet?url=${currentUrl}&text=${siteTitle}`;
+        }
+        
+        // Facebook
+        const facebookLink = document.getElementById('share-facebook-link');
+        if (facebookLink) {
+            facebookLink.href = `https://www.facebook.com/sharer/sharer.php?u=${currentUrl}`;
+        }
+        
+        // Instagram (just link to profile, can't share URL directly)
+        const instagramLink = document.getElementById('share-instagram-link');
+        if (instagramLink) {
+            // Update this with your Instagram profile URL
+            instagramLink.href = 'https://www.instagram.com/';
+        }
+        
+        // TikTok (just link to profile, can't share URL directly)
+        const tiktokLink = document.getElementById('share-tiktok-link');
+        if (tiktokLink) {
+            // Update this with your TikTok profile URL
+            tiktokLink.href = 'https://www.tiktok.com/';
+        }
+        
+        // Reddit
+        const redditLink = document.getElementById('share-reddit-link');
+        if (redditLink) {
+            redditLink.href = `https://www.reddit.com/submit?url=${currentUrl}&title=${siteTitle}`;
+        }
+        
+        // LinkedIn
+        const linkedinLink = document.getElementById('share-linkedin-link');
+        if (linkedinLink) {
+            linkedinLink.href = `https://www.linkedin.com/sharing/share-offsite/?url=${currentUrl}`;
+        }
+        
+        // YouTube (just link to channel, can't share URL directly)
+        const youtubeLink = document.getElementById('share-youtube-link');
+        if (youtubeLink) {
+            // Update this with your YouTube channel URL
+            youtubeLink.href = 'https://www.youtube.com/';
+        }
+    }
+
+    // ==================== SHARE SYSTEM ====================
+    
+    initShareSystem() {
+        // Close share dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!this.shareDropdown) {
+                this.shareDropdown = document.querySelector('.share-dropdown');
+            }
+            if (this.shareDropdown && this.shareBtn && 
+                !this.shareBtn.contains(e.target) && 
+                !this.shareDropdown.contains(e.target)) {
+                this.shareDropdown.classList.remove('active');
+            }
+        });
+        
+        // Close share modal when clicking outside
+        if (this.shareModal) {
+            this.shareModal.addEventListener('click', (e) => {
+                if (e.target === this.shareModal) {
+                    this.closeShareModalFunc();
+                }
+            });
+        }
+    }
+
+    toggleShareDropdown(e) {
+        if (e) {
+            e.stopPropagation();
+        }
+        
+        if (!this.shareDropdown) {
+            this.shareDropdown = document.querySelector('.share-dropdown');
+        }
+        
+        if (this.shareDropdown) {
+            // Close export dropdown if open
+            if (this.exportDropdown) {
+                this.exportDropdown.classList.remove('active');
+            }
+            this.shareDropdown.classList.toggle('active');
+        } else {
+            console.error('Share dropdown not found');
+        }
+    }
+
+    generateShareUrl() {
+        const values = this.getFormValues();
+        const musicPrompt = this.promptMusic.value;
+        const lyricsPrompt = this.promptLyrics.value;
+        
+        // Create shareable data
+        const shareData = {
+            v: '1.0', // version
+            m: musicPrompt || '',
+            l: lyricsPrompt || '',
+            d: values // form data
+        };
+        
+        // Encode to base64 URL-safe string
+        const encoded = btoa(JSON.stringify(shareData))
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=/g, '');
+        
+        const currentUrl = window.location.origin + window.location.pathname;
+        return `${currentUrl}?share=${encoded}`;
+    }
+
+    showShareModal() {
+        if (!this.shareModal) return;
+        
+        const shareUrl = this.generateShareUrl();
+        if (this.shareUrlInput) {
+            this.shareUrlInput.value = shareUrl;
+        }
+        
+        this.shareModal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        
+        // Close dropdown
+        if (this.shareDropdown) {
+            this.shareDropdown.classList.remove('active');
+        }
+    }
+
+    closeShareModalFunc() {
+        if (this.shareModal) {
+            this.shareModal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    }
+
+    async copyShareUrl() {
+        if (this.shareUrlInput) {
+            await this.copyToClipboard(this.shareUrlInput.value, 'Share link copied!');
+            
+            // Show feedback
+            if (this.copyShareUrlBtn) {
+                const originalText = this.copyShareUrlBtn.textContent;
+                this.copyShareUrlBtn.textContent = 'Copied!';
+                this.copyShareUrlBtn.style.background = '#34C759';
+                setTimeout(() => {
+                    this.copyShareUrlBtn.textContent = originalText;
+                    this.copyShareUrlBtn.style.background = '';
+                }, 2000);
+            }
+        }
+    }
+
+    shareOnTwitter() {
+        const musicPrompt = this.promptMusic.value;
+        const lyricsPrompt = this.promptLyrics.value;
+        const shareUrl = this.generateShareUrl();
+        
+        let text = 'Check out this Suno AI prompt I created!';
+        if (musicPrompt) {
+            const preview = musicPrompt.substring(0, 100);
+            text += `\n\n${preview}${musicPrompt.length > 100 ? '...' : ''}`;
+        }
+        text += `\n\n${shareUrl}`;
+        
+        const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+        window.open(twitterUrl, '_blank', 'width=550,height=420');
+        
+        this.closeShareModalFunc();
+        if (this.shareDropdown) {
+            this.shareDropdown.classList.remove('active');
+        }
+    }
+
+    shareOnFacebook() {
+        const shareUrl = this.generateShareUrl();
+        const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
+        window.open(facebookUrl, '_blank', 'width=550,height=420');
+        
+        this.closeShareModalFunc();
+        if (this.shareDropdown) {
+            this.shareDropdown.classList.remove('active');
+        }
+    }
+
+    shareOnReddit() {
+        const musicPrompt = this.promptMusic.value;
+        const lyricsPrompt = this.promptLyrics.value;
+        const shareUrl = this.generateShareUrl();
+        
+        let title = 'Suno AI Prompt - Check this out!';
+        let text = '';
+        if (musicPrompt) {
+            text += `**Styles:**\n${musicPrompt}\n\n`;
+        }
+        if (lyricsPrompt) {
+            text += `**Lyrics:**\n${lyricsPrompt}\n\n`;
+        }
+        text += `Created with Suno Prompt Builder: ${shareUrl}`;
+        
+        const redditUrl = `https://reddit.com/submit?title=${encodeURIComponent(title)}&text=${encodeURIComponent(text)}`;
+        window.open(redditUrl, '_blank', 'width=750,height=600');
+        
+        this.closeShareModalFunc();
+        if (this.shareDropdown) {
+            this.shareDropdown.classList.remove('active');
+        }
+    }
+
+    shareOnLinkedIn() {
+        const shareUrl = this.generateShareUrl();
+        const linkedinUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`;
+        window.open(linkedinUrl, '_blank', 'width=550,height=420');
+        
+        this.closeShareModalFunc();
+        if (this.shareDropdown) {
+            this.shareDropdown.classList.remove('active');
+        }
+    }
+
+    loadSharedPrompt() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const shareParam = urlParams.get('share');
+        
+        if (!shareParam) return;
+        
+        try {
+            // Decode from base64 URL-safe string
+            const decoded = shareParam
+                .replace(/-/g, '+')
+                .replace(/_/g, '/');
+            
+            // Add padding if needed
+            const padding = decoded.length % 4;
+            const padded = padding ? decoded + '='.repeat(4 - padding) : decoded;
+            
+            const shareData = JSON.parse(atob(padded));
+            
+            if (shareData.d) {
+                // Load form values
+                Object.keys(shareData.d).forEach(key => {
+                    const field = document.querySelector(`[id="${key}"]`);
+                    if (field && shareData.d[key]) {
+                        field.value = shareData.d[key];
+                    }
+                });
+            }
+            
+            // Load prompts
+            if (shareData.m && this.promptMusic) {
+                this.promptMusic.value = shareData.m;
+            }
+            if (shareData.l && this.promptLyrics) {
+                this.promptLyrics.value = shareData.l;
+            }
+            
+            // Update character counters
+            this.updateCharacterCounter();
+            this.updateProgressIndicator();
+            
+            // Show notification
+            this.showNotification('Shared prompt loaded!', 'success');
+            
+            // Clean URL (remove share parameter)
+            const newUrl = window.location.origin + window.location.pathname;
+            window.history.replaceState({}, document.title, newUrl);
+            
+        } catch (error) {
+            console.error('Error loading shared prompt:', error);
+            this.showNotification('Failed to load shared prompt.', 'error');
+        }
+    }
+
+    showNotification(message, type = 'info') {
+        this.showToast(message, type);
+    }
+
+    showToast(message, type = 'success') {
+        // Remove existing toasts
+        const existingToasts = document.querySelectorAll('.toast-notification');
+        existingToasts.forEach(toast => {
+            toast.style.animation = 'slideOutRight 0.3s ease';
+            setTimeout(() => toast.remove(), 300);
+        });
+
+        const toast = document.createElement('div');
+        toast.className = `toast-notification toast-${type}`;
+        
+        const icons = {
+            success: '✓',
+            error: '✕',
+            info: 'ℹ',
+            warning: '⚠'
+        };
+        
+        toast.innerHTML = `
+            <div class="toast-icon">${icons[type] || icons.info}</div>
+            <div class="toast-message">${message}</div>
+        `;
+        
+        document.body.appendChild(toast);
+        
+        // Trigger animation
+        setTimeout(() => {
+            toast.classList.add('show');
+        }, 10);
+        
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.remove();
+                }
+            }, 300);
+        }, 3000);
+    }
+
+    // ==================== VISUAL EDITOR ====================
+    
+    initVisualEditor() {
+        if (!this.visualEditorToggle) return;
+        
+        // Load saved settings
+        this.loadVisualSettings();
+        
+        // Event listeners
+        this.visualEditorToggle.addEventListener('click', () => this.showVisualEditor());
+        if (this.closeVisualEditor) {
+            this.closeVisualEditor.addEventListener('click', () => this.closeVisualEditorFunc());
+        }
+        if (this.saveVisualSettings) {
+            this.saveVisualSettings.addEventListener('click', () => this.saveVisualSettingsFunc());
+        }
+        if (this.resetVisualSettings) {
+            this.resetVisualSettings.addEventListener('click', () => this.resetVisualSettingsFunc());
+        }
+        
+        // Color inputs
+        const colorInputs = ['color-bg-primary', 'color-bg-secondary', 'color-text-primary', 'color-accent'];
+        colorInputs.forEach(id => {
+            const input = document.getElementById(id);
+            if (input) {
+                input.addEventListener('input', (e) => this.applyColorChange(id, e.target.value));
+            }
+        });
+        
+        // Range inputs
+        const rangeInputs = [
+            { id: 'font-title-size', property: '--font-title-size', suffix: 'px' },
+            { id: 'font-body-size', property: '--font-body-size', suffix: 'px' },
+            { id: 'border-radius', property: '--radius', suffix: 'px' },
+            { id: 'card-padding', property: '--card-padding', suffix: 'px' },
+            { id: 'element-gap', property: '--element-gap', suffix: 'px' }
+        ];
+        
+        rangeInputs.forEach(({ id, property, suffix }) => {
+            const input = document.getElementById(id);
+            const valueDisplay = document.getElementById(`${id}-value`);
+            if (input) {
+                input.addEventListener('input', (e) => {
+                    const value = e.target.value;
+                    if (valueDisplay) valueDisplay.textContent = value + suffix;
+                    document.documentElement.style.setProperty(property, value + suffix);
+                });
+            }
+        });
+        
+        // Close modal on outside click
+        if (this.visualEditorModal) {
+            this.visualEditorModal.addEventListener('click', (e) => {
+                if (e.target === this.visualEditorModal) {
+                    this.closeVisualEditorFunc();
+                }
+            });
+        }
+    }
+    
+    showVisualEditor() {
+        if (this.visualEditorModal) {
+            this.visualEditorModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+    }
+    
+    closeVisualEditorFunc() {
+        if (this.visualEditorModal) {
+            this.visualEditorModal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    }
+    
+    applyColorChange(inputId, value) {
+        const colorMap = {
+            'color-bg-primary': '--bg-primary',
+            'color-bg-secondary': '--bg-secondary',
+            'color-text-primary': '--text-primary',
+            'color-accent': '--accent-color'
+        };
+        
+        const cssVar = colorMap[inputId];
+        if (cssVar) {
+            document.documentElement.style.setProperty(cssVar, value);
+        }
+    }
+    
+    saveVisualSettings() {
+        const settings = {
+            colors: {
+                bgPrimary: document.getElementById('color-bg-primary')?.value || '#F5F5F7',
+                bgSecondary: document.getElementById('color-bg-secondary')?.value || '#FFFFFF',
+                textPrimary: document.getElementById('color-text-primary')?.value || '#000000',
+                accent: document.getElementById('color-accent')?.value || '#007AFF'
+            },
+            typography: {
+                titleSize: document.getElementById('font-title-size')?.value || '36',
+                bodySize: document.getElementById('font-body-size')?.value || '15',
+                borderRadius: document.getElementById('border-radius')?.value || '12'
+            },
+            spacing: {
+                cardPadding: document.getElementById('card-padding')?.value || '24',
+                elementGap: document.getElementById('element-gap')?.value || '16'
+            }
+        };
+        
+        localStorage.setItem('sunoVisualSettings', JSON.stringify(settings));
+        this.showNotification('Visual settings saved!', 'success');
+        this.closeVisualEditorFunc();
+    }
+    
+    saveVisualSettingsFunc() {
+        this.saveVisualSettings();
+    }
+    
+    loadVisualSettings() {
+        const saved = localStorage.getItem('sunoVisualSettings');
+        if (!saved) return;
+        
+        try {
+            const settings = JSON.parse(saved);
+            
+            // Apply colors
+            if (settings.colors) {
+                document.getElementById('color-bg-primary').value = settings.colors.bgPrimary;
+                document.getElementById('color-bg-secondary').value = settings.colors.bgSecondary;
+                document.getElementById('color-text-primary').value = settings.colors.textPrimary;
+                document.getElementById('color-accent').value = settings.colors.accent;
+                
+                this.applyColorChange('color-bg-primary', settings.colors.bgPrimary);
+                this.applyColorChange('color-bg-secondary', settings.colors.bgSecondary);
+                this.applyColorChange('color-text-primary', settings.colors.textPrimary);
+                this.applyColorChange('color-accent', settings.colors.accent);
+            }
+            
+            // Apply typography
+            if (settings.typography) {
+                document.getElementById('font-title-size').value = settings.typography.titleSize;
+                document.getElementById('font-title-size-value').textContent = settings.typography.titleSize + 'px';
+                document.getElementById('font-body-size').value = settings.typography.bodySize;
+                document.getElementById('font-body-size-value').textContent = settings.typography.bodySize + 'px';
+                document.getElementById('border-radius').value = settings.typography.borderRadius;
+                document.getElementById('border-radius-value').textContent = settings.typography.borderRadius + 'px';
+                
+                document.documentElement.style.setProperty('--font-title-size', settings.typography.titleSize + 'px');
+                document.documentElement.style.setProperty('--font-body-size', settings.typography.bodySize + 'px');
+                document.documentElement.style.setProperty('--radius', settings.typography.borderRadius + 'px');
+            }
+            
+            // Apply spacing
+            if (settings.spacing) {
+                document.getElementById('card-padding').value = settings.spacing.cardPadding;
+                document.getElementById('card-padding-value').textContent = settings.spacing.cardPadding + 'px';
+                document.getElementById('element-gap').value = settings.spacing.elementGap;
+                document.getElementById('element-gap-value').textContent = settings.spacing.elementGap + 'px';
+                
+                document.documentElement.style.setProperty('--card-padding', settings.spacing.cardPadding + 'px');
+                document.documentElement.style.setProperty('--element-gap', settings.spacing.elementGap + 'px');
+            }
+            
+        } catch (error) {
+            console.error('Error loading visual settings:', error);
+        }
+    }
+    
+    resetVisualSettingsFunc() {
+        if (confirm('Reset all visual settings to default?')) {
+            localStorage.removeItem('sunoVisualSettings');
+            location.reload();
+        }
+    }
+
+    // ==================== SEARCH SYSTEM ====================
+    
+    initSearch() {
+        if (!this.settingsSearch) return;
+        
+        let searchTimeout;
+        
+        this.settingsSearch.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            const query = e.target.value.toLowerCase().trim();
+            
+            if (query) {
+                this.clearSearchBtn.style.display = 'block';
+                searchTimeout = setTimeout(() => {
+                    this.filterSettings(query);
+                }, 300);
+            } else {
+                this.clearSearchBtn.style.display = 'none';
+                this.clearSearch();
+            }
+        });
+        
+        if (this.clearSearchBtn) {
+            this.clearSearchBtn.addEventListener('click', () => {
+                this.settingsSearch.value = '';
+                this.clearSearchBtn.style.display = 'none';
+                this.clearSearch();
+            });
+        }
+        
+        // Keyboard shortcut: Ctrl+F or Cmd+F
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'f' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+                this.settingsSearch.focus();
+            }
+        });
+    }
+    
+    filterSettings(query) {
+        const sections = document.querySelectorAll('.form-section');
+        let visibleCount = 0;
+        
+        sections.forEach(section => {
+            const sectionTitle = section.querySelector('.form-section-header h3')?.textContent.toLowerCase() || '';
+            const fields = section.querySelectorAll('select, input, textarea, label');
+            let hasMatch = false;
+            
+            // Check section title
+            if (sectionTitle.includes(query)) {
+                hasMatch = true;
+            }
+            
+            // Check field labels and options
+            fields.forEach(field => {
+                if (field.tagName === 'LABEL') {
+                    const labelText = field.textContent.toLowerCase();
+                    if (labelText.includes(query)) {
+                        hasMatch = true;
+                    }
+                } else if (field.tagName === 'SELECT') {
+                    const options = Array.from(field.options);
+                    const matchingOptions = options.filter(opt => 
+                        opt.text.toLowerCase().includes(query) || opt.value.toLowerCase().includes(query)
+                    );
+                    if (matchingOptions.length > 0) {
+                        hasMatch = true;
+                    }
+                }
+            });
+            
+            if (hasMatch) {
+                section.style.display = '';
+                visibleCount++;
+            } else {
+                section.style.display = 'none';
+            }
+        });
+        
+        // Show message if no results
+        if (visibleCount === 0) {
+            this.showToast('No settings found matching your search.', 'info');
+        }
+    }
+    
+    clearSearch() {
+        const sections = document.querySelectorAll('.form-section');
+        sections.forEach(section => {
+            section.style.display = '';
+        });
+    }
+
+    // ==================== FAVORITES SYSTEM ====================
+    
+    initFavorites() {
+        // Add filter button to history header when history tab is shown
+        const historyTab = document.querySelector('[data-tab="history"]');
+        if (historyTab) {
+            historyTab.addEventListener('click', () => {
+                setTimeout(() => {
+                    const historyHeader = document.querySelector('.history-header');
+                    if (historyHeader && !document.getElementById('filter-favorites-btn')) {
+                        const filterBtn = document.createElement('button');
+                        filterBtn.id = 'filter-favorites-btn';
+                        filterBtn.className = 'btn-small btn-secondary';
+                        filterBtn.textContent = 'Show Favorites';
+                        filterBtn.title = 'Filter to show only favorite prompts';
+                        filterBtn.addEventListener('click', () => this.toggleFavoritesFilter());
+                        historyHeader.insertBefore(filterBtn, historyHeader.firstChild);
+                    }
+                }, 100);
+            });
+            
+            // Also add on initial load if history tab is active
+            if (historyTab.classList.contains('active')) {
+                setTimeout(() => {
+                    const historyHeader = document.querySelector('.history-header');
+                    if (historyHeader && !document.getElementById('filter-favorites-btn')) {
+                        const filterBtn = document.createElement('button');
+                        filterBtn.id = 'filter-favorites-btn';
+                        filterBtn.className = 'btn-small btn-secondary';
+                        filterBtn.textContent = 'Show Favorites';
+                        filterBtn.title = 'Filter to show only favorite prompts';
+                        filterBtn.addEventListener('click', () => this.toggleFavoritesFilter());
+                        historyHeader.insertBefore(filterBtn, historyHeader.firstChild);
+                    }
+                }, 500);
+            }
+        }
+    }
+    
+    toggleFavoritesFilter() {
+        const filterBtn = document.getElementById('filter-favorites-btn');
+        const isFiltered = filterBtn?.classList.contains('active');
+        
+        if (isFiltered) {
+            filterBtn.classList.remove('active');
+            filterBtn.textContent = 'Show Favorites';
+            this.loadHistory();
+        } else {
+            filterBtn.classList.add('active');
+            filterBtn.textContent = 'Show All';
+            this.loadHistory(true); // Pass true to show only favorites
+        }
+    }
+    
+    loadHistory(showFavoritesOnly = false) {
+        const history = this.getHistory();
+        this.historyList.innerHTML = '';
+
+        if (history.length === 0) {
+            this.historyEmpty.style.display = 'flex';
+            return;
+        }
+
+        this.historyEmpty.style.display = 'none';
+
+        // Filter favorites if needed
+        let filteredHistory = history;
+        if (showFavoritesOnly) {
+            filteredHistory = history.filter(item => item.favorite);
+            if (filteredHistory.length === 0) {
+                this.historyEmpty.style.display = 'flex';
+                this.historyEmpty.innerHTML = `
+                    <p>No favorite prompts yet.</p>
+                    <p class="history-empty-sub">Click the star icon on any prompt to favorite it.</p>
+                `;
+                return;
+            }
+        }
+
+        // Sort: favorites first, then by date
+        const sortedHistory = [...filteredHistory].sort((a, b) => {
+            if (a.favorite && !b.favorite) return -1;
+            if (!a.favorite && b.favorite) return 1;
+            return b.id - a.id;
+        });
+
+        sortedHistory.forEach(item => {
+            const historyItem = document.createElement('div');
+            historyItem.className = 'history-item';
+            historyItem.dataset.id = item.id;
+
+            const preview = item.prompt.length > 100 
+                ? item.prompt.substring(0, 100) + '...' 
+                : item.prompt;
+
+            historyItem.innerHTML = `
+                <div class="history-item-header">
+                    <span class="history-item-date">${item.date} ${item.time || ''}</span>
+                    <div class="history-item-actions">
+                        <button class="history-item-btn favorite ${item.favorite ? 'active' : ''}" 
+                                data-action="favorite" title="${item.favorite ? 'Remove from favorites' : 'Add to favorites'}">
+                            ${item.favorite ? '⭐' : '☆'}
+                        </button>
+                        <button class="history-item-btn" data-action="use" title="Use this prompt">Use</button>
+                        <button class="history-item-btn" data-action="copy" title="Copy prompt">Copy</button>
+                        <button class="history-item-btn" data-action="delete" title="Delete">×</button>
+                    </div>
+                </div>
+                <div class="history-item-preview">${this.escapeHtml(preview)}</div>
+            `;
+            
+            historyItem.addEventListener('click', (e) => {
+                if (!e.target.closest('.history-item-actions')) {
+                    const musicPrompt = item.prompt.includes('Styles:') ? item.prompt.split('Lyrics:')[0].replace('Styles:', '').trim() : item.prompt;
+                    const lyricsPrompt = item.prompt.includes('Lyrics:') ? item.prompt.split('Lyrics:')[1].trim() : '';
+                    if (this.promptMusic) this.promptMusic.value = musicPrompt;
+                    if (this.promptLyrics) this.promptLyrics.value = lyricsPrompt;
+                    this.updateCharacterCounter();
+                }
+            });
+
+            // Attach event listeners
+            const buttons = historyItem.querySelectorAll('.history-item-btn');
+            buttons.forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const action = button.dataset.action;
+                    this.handleHistoryAction(action, item, button);
+                });
+            });
+
+            this.historyList.appendChild(historyItem);
         });
     }
 }

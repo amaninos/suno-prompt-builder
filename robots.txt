@@ -1,5 +1,10 @@
 User-agent: *
 Allow: /
+Disallow: /assets/
 
+# Sitemap
 Sitemap: https://sunobuilder.com/sitemap.xml
+
+# Crawl-delay (optional, helps prevent server overload)
+Crawl-delay: 1
 
