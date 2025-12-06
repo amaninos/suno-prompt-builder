@@ -86,7 +86,7 @@
         "name": "Suno Prompt Builder"
       },
       "browserRequirements": "Requires JavaScript. Requires HTML5.",
-      "softwareVersion": "2.0"
+      "softwareVersion": "3.0"
     }
     </script>
     
@@ -135,7 +135,7 @@
     <div class="page-hero">
         <header class="page-header">
             <div class="header-content">
-                <h1 class="page-title">SUNO PROMPT BUILDER</h1>
+                <h1 class="page-title">SUNO PROMPT BUILDER <span style="font-size: 0.4em; opacity: 0.6;">v3.0</span></h1>
                 <p class="page-subtitle">Create professional music prompts for SUNO AI with customizable styles, instruments, and lyrics guidance.</p>
                 <div class="social-share-buttons" id="social-share-buttons">
                     <a href="#" id="share-twitter-link" target="_blank" class="social-share-btn twitter" title="Share on X (Twitter)">
@@ -234,12 +234,19 @@
                         <h4>Prompt Progress</h4>
                         <p>Fill the key sections to reach 100%</p>
                     </div>
-                    <span class="progress-percentage" id="progress-percentage">0%</span>
+                    <div class="progress-stats">
+                        <span class="progress-percentage" id="progress-percentage">0%</span>
+                        <span class="quality-score" id="quality-score" title="Quality Score (1-10)">⭐ 0/10</span>
+                    </div>
                 </div>
                 <div class="progress-bar">
                     <div class="progress-fill" id="progress-fill"></div>
                 </div>
                 <p class="progress-message" id="progress-message">Select a genre to get started.</p>
+                <div class="quality-suggestions" id="quality-suggestions" style="display: none;">
+                    <p class="quality-suggestions-title">💡 Suggestions:</p>
+                    <ul class="quality-suggestions-list" id="quality-suggestions-list"></ul>
+                </div>
             </div>
             <div class="output-container">
                 <!-- Music/Styles Prompt -->
@@ -332,8 +339,11 @@
                         <div class="dropdown-menu">
                             <button id="export-json-btn">Export as JSON</button>
                             <button id="export-txt-btn">Export as Text</button>
+                            <button id="export-csv-btn">Export as CSV</button>
+                            <button id="export-suno-btn">Export for Suno</button>
                         </div>
                     </div>
+                    <button id="batch-generate-btn" class="btn btn-secondary">Batch Generate</button>
                     <button id="import-btn" class="btn btn-secondary">Import</button>
                     <button id="reset-btn" class="btn btn-tertiary">Reset</button>
                 </div>
@@ -382,6 +392,8 @@
                     <button class="tab-btn" data-tab="presets">Presets</button>
                     <button class="tab-btn" data-tab="shortcuts">Shortcuts</button>
                     <button class="tab-btn" data-tab="history">History</button>
+                    <button class="tab-btn" data-tab="community">Community</button>
+                    <button class="tab-btn" data-tab="analytics">Analytics</button>
                 </div>
             </div>
             <div class="tab-content active" id="tips-content">
@@ -474,7 +486,14 @@
             <div class="tab-content" id="history-content">
                 <div class="history-content">
                     <div class="history-header">
+                        <input type="text" id="history-search-input" class="history-search-input" placeholder="🔍 Search history...">
                         <button id="clear-history-btn" class="btn-small btn-tertiary">Clear All</button>
+                    </div>
+                    <div class="history-filters" id="history-filters">
+                        <button class="filter-tag active" data-filter="all">All</button>
+                        <button class="filter-tag" data-filter="today">Today</button>
+                        <button class="filter-tag" data-filter="week">This Week</button>
+                        <button class="filter-tag" data-filter="month">This Month</button>
                     </div>
                     <div id="history-list" class="history-list">
                         <!-- History items will be inserted here -->
@@ -482,6 +501,62 @@
                     <div id="history-empty" class="history-empty">
                         <p>No prompts saved yet.</p>
                         <p class="history-empty-sub">Generated prompts will appear here.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-content" id="community-content">
+                <div class="community-content">
+                    <div class="community-header">
+                        <h4>Community Presets</h4>
+                        <button id="share-to-community-btn" class="btn-small btn-primary">Share My Preset</button>
+                    </div>
+                    <div class="community-search">
+                        <input type="text" id="community-search-input" placeholder="🔍 Search community presets...">
+                    </div>
+                    <div class="community-filters" id="community-filters">
+                        <button class="filter-tag active" data-filter="all">All</button>
+                        <button class="filter-tag" data-filter="popular">Popular</button>
+                        <button class="filter-tag" data-filter="recent">Recent</button>
+                    </div>
+                    <div id="community-presets-list" class="community-presets-list">
+                        <!-- Community presets will be inserted here -->
+                    </div>
+                    <div id="community-empty" class="community-empty">
+                        <p>No community presets yet.</p>
+                        <p class="community-empty-sub">Be the first to share a preset!</p>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-content" id="analytics-content">
+                <div class="analytics-content">
+                    <div class="analytics-section">
+                        <h4>Usage Statistics</h4>
+                        <div class="stat-card">
+                            <div class="stat-item">
+                                <span class="stat-label">Total Prompts</span>
+                                <span class="stat-value" id="stat-total-prompts">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Saved Presets</span>
+                                <span class="stat-value" id="stat-saved-presets">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Copied Prompts</span>
+                                <span class="stat-value" id="stat-copied-prompts">0</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="analytics-section">
+                        <h4>Popular Combinations</h4>
+                        <div id="popular-combinations" class="popular-combinations">
+                            <!-- Popular combinations will be inserted here -->
+                        </div>
+                    </div>
+                    <div class="analytics-section">
+                        <h4>Trend Analysis</h4>
+                        <div id="trend-analysis" class="trend-analysis">
+                            <p class="trend-placeholder">Generate more prompts to see trends</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -519,7 +594,22 @@
             <div class="modal-body whats-new-body">
                 <article class="changelog-entry">
                     <div class="changelog-meta">
-                        <span class="badge badge-new">Beta 2.5</span>
+                        <span class="badge badge-new">v3.0</span>
+                        <span>12/06/25</span>
+                    </div>
+                    <h4>Major Update – v3.0 Released! 🚀</h4>
+                    <ul>
+                        <li>Enhanced Analytics dashboard with usage statistics</li>
+                        <li>Community presets sharing system</li>
+                        <li>Batch generate multiple prompts at once</li>
+                        <li>History search & time-based filters</li>
+                        <li>Improved UI/UX with 1400+ lines of new code</li>
+                        <li>Performance optimizations across the board</li>
+                    </ul>
+                </article>
+                <article class="changelog-entry">
+                    <div class="changelog-meta">
+                        <span class="badge badge-pro">Beta 2.5</span>
                         <span>11/26/25</span>
                     </div>
                     <h4>Quick Presets land in the builder</h4>
@@ -732,6 +822,37 @@
             <div class="modal-footer">
                 <button id="reset-visual-settings" class="btn btn-tertiary">Reset to Default</button>
                 <button id="save-visual-settings" class="btn btn-primary">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Batch Generate Modal -->
+    <div id="batch-generate-modal" class="modal batch-modal">
+        <div class="modal-content batch-modal-content">
+            <div class="modal-header">
+                <h3>Batch Generate Prompts</h3>
+                <button class="modal-close" id="close-batch-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="batch-description">Generate multiple prompts from selected presets:</p>
+                <div class="batch-presets-selection" id="batch-presets-selection">
+                    <!-- Presets will be inserted here -->
+                </div>
+                <div class="batch-options">
+                    <label>
+                        <input type="number" id="batch-count" min="1" max="20" value="5">
+                        <span>Number of prompts to generate</span>
+                    </label>
+                </div>
+                <div class="batch-results" id="batch-results" style="display: none;">
+                    <h4>Generated Prompts:</h4>
+                    <div id="batch-results-list"></div>
+                    <button id="batch-export-all-btn" class="btn btn-primary">Export All</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="start-batch-generate-btn" class="btn btn-primary">Generate</button>
+                <button id="cancel-batch-btn" class="btn btn-secondary">Cancel</button>
             </div>
         </div>
     </div>

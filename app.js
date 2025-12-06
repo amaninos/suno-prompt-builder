@@ -136,8 +136,21 @@ class SunoPromptBuilder {
         this.initVisualEditor();
         this.initSearch();
         this.initFavorites();
+        this.initHistorySearch();
+        this.initCommunityFeatures();
+        this.initAnalytics();
+        this.initBatchGenerate();
+        this.initPromptVersioning();
         this.trackUsage();
         this.loadSharedPrompt();
+        
+        // Update analytics on tab switch
+        const analyticsTab = document.querySelector('[data-tab="analytics"]');
+        if (analyticsTab) {
+            analyticsTab.addEventListener('click', () => {
+                setTimeout(() => this.updateAnalytics(), 100);
+            });
+        }
         
         // Initialize share dropdown after a short delay to ensure DOM is ready
         setTimeout(() => {
@@ -1138,7 +1151,7 @@ class SunoPromptBuilder {
         if (copyLyricsBtn) {
             copyLyricsBtn.addEventListener('click', () => this.copyLyricsPrompt());
         }
-        this.saveBtn.addEventListener('click', () => this.savePrompt());
+        this.saveBtn.addEventListener('click', () => this.savePromptWithVersion());
         this.optimizeBtn.addEventListener('click', () => this.optimizePrompt());
         this.resetBtn.addEventListener('click', () => this.resetForm());
         this.promptOutput.addEventListener('input', () => this.updateCharacterCounter());
@@ -1156,8 +1169,24 @@ class SunoPromptBuilder {
         this.exportBtn.addEventListener('click', () => this.toggleExportDropdown());
         this.exportJsonBtn.addEventListener('click', () => this.exportAsJSON());
         this.exportTxtBtn.addEventListener('click', () => this.exportAsText());
+        const exportCsvBtn = document.getElementById('export-csv-btn');
+        const exportSunoBtn = document.getElementById('export-suno-btn');
+        if (exportCsvBtn) exportCsvBtn.addEventListener('click', () => this.exportAsCSV());
+        if (exportSunoBtn) exportSunoBtn.addEventListener('click', () => this.exportForSuno());
         this.importBtn.addEventListener('click', () => this.importFile());
         this.importFileInput.addEventListener('change', (e) => this.handleImportFile(e));
+        
+        // Batch generate
+        const batchGenerateBtn = document.getElementById('batch-generate-btn');
+        const closeBatchModal = document.getElementById('close-batch-modal');
+        const startBatchGenerateBtn = document.getElementById('start-batch-generate-btn');
+        const cancelBatchBtn = document.getElementById('cancel-batch-btn');
+        const batchExportAllBtn = document.getElementById('batch-export-all-btn');
+        if (batchGenerateBtn) batchGenerateBtn.addEventListener('click', () => this.showBatchModal());
+        if (closeBatchModal) closeBatchModal.addEventListener('click', () => this.closeBatchModal());
+        if (startBatchGenerateBtn) startBatchGenerateBtn.addEventListener('click', () => this.startBatchGenerate());
+        if (cancelBatchBtn) cancelBatchBtn.addEventListener('click', () => this.closeBatchModal());
+        if (batchExportAllBtn) batchExportAllBtn.addEventListener('click', () => this.exportBatchResults());
         
         // Share system
         if (this.shareBtn) {
@@ -2635,6 +2664,99 @@ class SunoPromptBuilder {
         } else {
             this.progressFill.classList.add('progress-good');
         }
+
+        // Update quality score
+        this.updateQualityScore();
+    }
+
+    updateQualityScore() {
+        const qualityScoreEl = document.getElementById('quality-score');
+        const qualitySuggestionsEl = document.getElementById('quality-suggestions');
+        const qualitySuggestionsListEl = document.getElementById('quality-suggestions-list');
+        
+        if (!qualityScoreEl) return;
+
+        const musicPrompt = (this.promptMusic.value || '').trim();
+        const lyricsPrompt = (this.promptLyrics.value || '').trim();
+        
+        let score = 0;
+        const suggestions = [];
+
+        // Check completion (0-4 points)
+        const total = this.progressConfig.length;
+        let completed = 0;
+        this.progressConfig.forEach(field => {
+            const el = document.getElementById(field.id);
+            if (el && (el.value || '').trim()) completed++;
+        });
+        const completionRatio = completed / total;
+        score += Math.round(completionRatio * 4);
+
+        // Check character limits (0-2 points)
+        if (musicPrompt.length > 0 && musicPrompt.length <= 1000) {
+            score += 1;
+            if (musicPrompt.length >= 200 && musicPrompt.length <= 800) {
+                score += 1; // Optimal length
+            } else if (musicPrompt.length > 800) {
+                suggestions.push('Music prompt is getting long. Consider optimizing.');
+            }
+        } else if (musicPrompt.length > 1000) {
+            suggestions.push('Music prompt exceeds 1000 characters. Use Optimize button.');
+        }
+
+        if (lyricsPrompt.length > 0 && lyricsPrompt.length <= 200) {
+            score += 1;
+            if (lyricsPrompt.length >= 50 && lyricsPrompt.length <= 180) {
+                score += 1; // Optimal length
+            } else if (lyricsPrompt.length > 180) {
+                suggestions.push('Lyrics prompt is close to the 200 character limit.');
+            }
+        } else if (lyricsPrompt.length > 200) {
+            suggestions.push('Lyrics prompt exceeds 200 characters.');
+        }
+
+        // Check for essential fields (0-2 points)
+        const essentialFields = ['genre', 'tempo', 'mood'];
+        let essentialCount = 0;
+        essentialFields.forEach(fieldId => {
+            const el = document.getElementById(fieldId);
+            if (el && (el.value || '').trim()) essentialCount++;
+        });
+        if (essentialCount === essentialFields.length) {
+            score += 2;
+        } else if (essentialCount > 0) {
+            score += 1;
+            const missingEssential = essentialFields.filter(fieldId => {
+                const el = document.getElementById(fieldId);
+                return !el || !(el.value || '').trim();
+            });
+            if (missingEssential.length > 0) {
+                suggestions.push(`Add ${missingEssential.map(id => this.progressConfig.find(f => f.id === id)?.label || id).join(', ')} for better results.`);
+            }
+        }
+
+        // Ensure score is between 0-10
+        score = Math.min(10, Math.max(0, score));
+
+        qualityScoreEl.textContent = `⭐ ${score}/10`;
+        qualityScoreEl.className = 'quality-score';
+        if (score >= 8) {
+            qualityScoreEl.classList.add('quality-excellent');
+        } else if (score >= 6) {
+            qualityScoreEl.classList.add('quality-good');
+        } else if (score >= 4) {
+            qualityScoreEl.classList.add('quality-medium');
+        } else {
+            qualityScoreEl.classList.add('quality-low');
+        }
+
+        // Show suggestions if any
+        if (suggestions.length > 0 && qualitySuggestionsEl && qualitySuggestionsListEl) {
+            qualitySuggestionsListEl.innerHTML = suggestions.map(s => `<li>${s}</li>`).join('');
+            qualitySuggestionsEl.style.display = 'block';
+        } else if (qualitySuggestionsEl) {
+            qualitySuggestionsEl.style.display = 'none';
+        }
     }
 
     updateAdvancedPreview() {
@@ -3916,12 +4038,18 @@ class SunoPromptBuilder {
     trackCopyAction() {
         this.promptCopiedCount++;
         localStorage.setItem('sunoPromptCopiedCount', this.promptCopiedCount.toString());
+        const analytics = this.getAnalytics();
+        analytics.copiedCount = (analytics.copiedCount || 0) + 1;
+        this.saveAnalytics(analytics);
         this.checkFeedbackTriggers();
     }
 
     trackSaveAction() {
         this.promptSavedCount++;
         localStorage.setItem('sunoPromptSavedCount', this.promptSavedCount.toString());
+        const analytics = this.getAnalytics();
+        analytics.savedCount = (analytics.savedCount || 0) + 1;
+        this.saveAnalytics(analytics);
         this.checkFeedbackTriggers();
     }
 
@@ -4942,6 +5070,695 @@ class SunoPromptBuilder {
 
             this.historyList.appendChild(historyItem);
         });
+    }
+
+    // ==================== QUALITY SCORE (already added above) ====================
+
+    // ==================== HISTORY SEARCH & FILTERING ====================
+    
+    initHistorySearch() {
+        const historySearchInput = document.getElementById('history-search-input');
+        const historyFilters = document.querySelectorAll('#history-filters .filter-tag');
+        
+        if (historySearchInput) {
+            let searchTimeout;
+            historySearchInput.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    this.filterHistory(e.target.value);
+                }, 300);
+            });
+        }
+
+        if (historyFilters.length > 0) {
+            historyFilters.forEach(filter => {
+                filter.addEventListener('click', () => {
+                    historyFilters.forEach(f => f.classList.remove('active'));
+                    filter.classList.add('active');
+                    this.filterHistoryByDate(filter.dataset.filter);
+                });
+            });
+        }
+    }
+
+    filterHistory(searchTerm) {
+        const historyItems = document.querySelectorAll('.history-item');
+        let visibleCount = 0;
+        
+        historyItems.forEach(item => {
+            const preview = item.querySelector('.history-item-preview').textContent.toLowerCase();
+            const date = item.querySelector('.history-item-date').textContent.toLowerCase();
+            
+            if (preview.includes(searchTerm.toLowerCase()) || date.includes(searchTerm.toLowerCase())) {
+                item.style.display = '';
+                visibleCount++;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+
+        if (visibleCount === 0 && searchTerm) {
+            this.historyEmpty.style.display = 'block';
+            this.historyEmpty.innerHTML = `
+                <p>No prompts found matching "${searchTerm}"</p>
+            `;
+        } else {
+            this.historyEmpty.style.display = 'none';
+        }
+    }
+
+    filterHistoryByDate(filter) {
+        const history = this.getHistory();
+        const now = new Date();
+        const filtered = history.filter(item => {
+            const itemDate = new Date(item.date);
+            switch(filter) {
+                case 'today':
+                    return itemDate.toDateString() === now.toDateString();
+                case 'week':
+                    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                    return itemDate >= weekAgo;
+                case 'month':
+                    const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                    return itemDate >= monthAgo;
+                default:
+                    return true;
+            }
+        });
+        this.renderFilteredHistory(filtered);
+    }
+
+    renderFilteredHistory(filtered) {
+        this.historyList.innerHTML = '';
+        if (filtered.length === 0) {
+            this.historyEmpty.style.display = 'block';
+            return;
+        }
+        this.historyEmpty.style.display = 'none';
+        filtered.forEach(item => {
+            const historyItem = document.createElement('div');
+            historyItem.className = 'history-item';
+            historyItem.dataset.id = item.id;
+            const preview = item.prompt.length > 100 ? item.prompt.substring(0, 100) + '...' : item.prompt;
+            historyItem.innerHTML = `
+                <div class="history-item-header">
+                    <span class="history-item-date">${item.date} ${item.time || ''}</span>
+                    <div class="history-item-actions">
+                        <button class="history-item-btn favorite ${item.favorite ? 'active' : ''}" data-action="favorite">${item.favorite ? '⭐' : '☆'}</button>
+                        <button class="history-item-btn" data-action="use">Use</button>
+                        <button class="history-item-btn" data-action="copy">Copy</button>
+                        <button class="history-item-btn" data-action="delete">×</button>
+                    </div>
+                </div>
+                <div class="history-item-preview">${this.escapeHtml(preview)}</div>
+            `;
+            const buttons = historyItem.querySelectorAll('.history-item-btn');
+            buttons.forEach(button => {
+                button.addEventListener('click', (e) => {
+                    this.handleHistoryAction(button.dataset.action, item, button);
+                });
+            });
+            this.historyList.appendChild(historyItem);
+        });
+    }
+
+    // ==================== COMMUNITY FEATURES ====================
+    
+    initCommunityFeatures() {
+        const shareToCommunityBtn = document.getElementById('share-to-community-btn');
+        const communitySearchInput = document.getElementById('community-search-input');
+        const communityFilters = document.querySelectorAll('#community-filters .filter-tag');
+        
+        if (shareToCommunityBtn) {
+            shareToCommunityBtn.addEventListener('click', () => this.sharePresetToCommunity());
+        }
+
+        if (communitySearchInput) {
+            let searchTimeout;
+            communitySearchInput.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    this.filterCommunityPresets(e.target.value);
+                }, 300);
+            });
+        }
+
+        if (communityFilters.length > 0) {
+            communityFilters.forEach(filter => {
+                filter.addEventListener('click', () => {
+                    communityFilters.forEach(f => f.classList.remove('active'));
+                    filter.classList.add('active');
+                    this.filterCommunityByType(filter.dataset.filter);
+                });
+            });
+        }
+
+        this.loadCommunityPresets();
+    }
+
+    sharePresetToCommunity() {
+        const currentData = this.collectFormData();
+        if (!currentData.genre) {
+            this.showToast('Please fill at least a genre before sharing.', 'error');
+            return;
+        }
+
+        const presetName = prompt('Enter a name for this preset:');
+        if (!presetName) return;
+
+        const communityPresets = this.getCommunityPresets();
+        const newPreset = {
+            id: Date.now(),
+            name: presetName,
+            data: currentData,
+            author: 'You',
+            likes: 0,
+            date: new Date().toISOString(),
+            tags: this.extractTags(currentData)
+        };
+
+        communityPresets.push(newPreset);
+        this.saveCommunityPresets(communityPresets);
+        this.showToast('Preset shared to community!', 'success');
+        this.loadCommunityPresets();
+    }
+
+    extractTags(data) {
+        const tags = [];
+        if (data.genre) tags.push(data.genre.toLowerCase());
+        if (data.mood) tags.push(data.mood.toLowerCase());
+        if (data.tempo) tags.push(data.tempo.toLowerCase());
+        return tags;
+    }
+
+    getCommunityPresets() {
+        const stored = localStorage.getItem('sunoCommunityPresets');
+        return stored ? JSON.parse(stored) : [];
+    }
+
+    saveCommunityPresets(presets) {
+        localStorage.setItem('sunoCommunityPresets', JSON.stringify(presets));
+    }
+
+    loadCommunityPresets() {
+        const presets = this.getCommunityPresets();
+        const listEl = document.getElementById('community-presets-list');
+        const emptyEl = document.getElementById('community-empty');
+        
+        if (!listEl) return;
+
+        if (presets.length === 0) {
+            listEl.innerHTML = '';
+            if (emptyEl) emptyEl.style.display = 'block';
+            return;
+        }
+
+        if (emptyEl) emptyEl.style.display = 'none';
+        listEl.innerHTML = presets.map(preset => `
+            <div class="community-preset-item" data-id="${preset.id}">
+                <div class="community-preset-header">
+                    <h5>${this.escapeHtml(preset.name)}</h5>
+                    <div class="community-preset-meta">
+                        <span class="community-preset-author">by ${this.escapeHtml(preset.author)}</span>
+                        <span class="community-preset-likes">❤️ ${preset.likes || 0}</span>
+                    </div>
+                </div>
+                <div class="community-preset-tags">
+                    ${preset.tags ? preset.tags.map(tag => `<span class="tag">${this.escapeHtml(tag)}</span>`).join('') : ''}
+                </div>
+                <div class="community-preset-actions">
+                    <button class="btn-small btn-primary" data-action="use">Use</button>
+                    <button class="btn-small btn-secondary" data-action="like">❤️ Like</button>
+                </div>
+            </div>
+        `).join('');
+
+        listEl.querySelectorAll('[data-action="use"]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const presetId = parseInt(btn.closest('.community-preset-item').dataset.id);
+                const preset = presets.find(p => p.id === presetId);
+                if (preset) this.applyPresetData(preset.data);
+            });
+        });
+
+        listEl.querySelectorAll('[data-action="like"]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const presetId = parseInt(btn.closest('.community-preset-item').dataset.id);
+                const updatedPresets = presets.map(p => {
+                    if (p.id === presetId) {
+                        p.likes = (p.likes || 0) + 1;
+                    }
+                    return p;
+                });
+                this.saveCommunityPresets(updatedPresets);
+                this.loadCommunityPresets();
+                this.showToast('Liked!', 'success');
+            });
+        });
+    }
+
+    filterCommunityPresets(searchTerm) {
+        const presets = this.getCommunityPresets();
+        const filtered = presets.filter(preset => {
+            const searchLower = searchTerm.toLowerCase();
+            return preset.name.toLowerCase().includes(searchLower) ||
+                   preset.tags.some(tag => tag.toLowerCase().includes(searchLower));
+        });
+        this.renderFilteredCommunityPresets(filtered);
+    }
+
+    filterCommunityByType(type) {
+        const presets = this.getCommunityPresets();
+        let filtered = [...presets];
+        
+        if (type === 'popular') {
+            filtered.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+        } else if (type === 'recent') {
+            filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+        }
+        
+        this.renderFilteredCommunityPresets(filtered);
+    }
+
+    renderFilteredCommunityPresets(presets) {
+        const listEl = document.getElementById('community-presets-list');
+        if (!listEl) return;
+        
+        if (presets.length === 0) {
+            listEl.innerHTML = '<p class="community-empty">No presets found.</p>';
+            return;
+        }
+        
+        listEl.innerHTML = presets.map(preset => `
+            <div class="community-preset-item" data-id="${preset.id}">
+                <div class="community-preset-header">
+                    <h5>${this.escapeHtml(preset.name)}</h5>
+                    <div class="community-preset-meta">
+                        <span class="community-preset-author">by ${this.escapeHtml(preset.author)}</span>
+                        <span class="community-preset-likes">❤️ ${preset.likes || 0}</span>
+                    </div>
+                </div>
+                <div class="community-preset-tags">
+                    ${preset.tags ? preset.tags.map(tag => `<span class="tag">${this.escapeHtml(tag)}</span>`).join('') : ''}
+                </div>
+                <div class="community-preset-actions">
+                    <button class="btn-small btn-primary" data-action="use">Use</button>
+                    <button class="btn-small btn-secondary" data-action="like">❤️ Like</button>
+                </div>
+            </div>
+        `).join('');
+
+        listEl.querySelectorAll('[data-action="use"]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const presetId = parseInt(btn.closest('.community-preset-item').dataset.id);
+                const preset = presets.find(p => p.id === presetId);
+                if (preset) this.applyPresetData(preset.data);
+            });
+        });
+
+        listEl.querySelectorAll('[data-action="like"]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const presetId = parseInt(btn.closest('.community-preset-item').dataset.id);
+                const allPresets = this.getCommunityPresets();
+                const updatedPresets = allPresets.map(p => {
+                    if (p.id === presetId) {
+                        p.likes = (p.likes || 0) + 1;
+                    }
+                    return p;
+                });
+                this.saveCommunityPresets(updatedPresets);
+                this.loadCommunityPresets();
+                this.showToast('Liked!', 'success');
+            });
+        });
+    }
+
+    // ==================== ANALYTICS ====================
+    
+    initAnalytics() {
+        this.updateAnalytics();
+    }
+
+    updateAnalytics() {
+        const history = this.getHistory();
+        const presets = this.getPresets();
+        const analytics = this.getAnalytics();
+
+        // Update stats
+        const totalPromptsEl = document.getElementById('stat-total-prompts');
+        const savedPresetsEl = document.getElementById('stat-saved-presets');
+        const copiedPromptsEl = document.getElementById('stat-copied-prompts');
+
+        if (totalPromptsEl) totalPromptsEl.textContent = history.length;
+        if (savedPresetsEl) savedPresetsEl.textContent = presets.length;
+        if (copiedPromptsEl) copiedPromptsEl.textContent = analytics.copiedCount || 0;
+
+        // Update popular combinations
+        this.updatePopularCombinations(history);
+        
+        // Update trend analysis
+        this.updateTrendAnalysis(history);
+    }
+
+    getAnalytics() {
+        const stored = localStorage.getItem('sunoAnalytics');
+        return stored ? JSON.parse(stored) : { copiedCount: 0, trends: [] };
+    }
+
+    saveAnalytics(analytics) {
+        localStorage.setItem('sunoAnalytics', JSON.stringify(analytics));
+    }
+
+    updatePopularCombinations(history) {
+        const combinations = {};
+        history.forEach(item => {
+            const data = item.data || {};
+            const key = `${data.genre || 'Unknown'}-${data.mood || 'Unknown'}-${data.tempo || 'Unknown'}`;
+            combinations[key] = (combinations[key] || 0) + 1;
+        });
+
+        const popular = Object.entries(combinations)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5);
+
+        const popularEl = document.getElementById('popular-combinations');
+        if (popularEl) {
+            if (popular.length === 0) {
+                popularEl.innerHTML = '<p class="trend-placeholder">No combinations yet</p>';
+            } else {
+                popularEl.innerHTML = popular.map(([key, count]) => {
+                    const [genre, mood, tempo] = key.split('-');
+                    return `
+                        <div class="popular-combination-item">
+                            <div class="combination-info">
+                                <strong>${genre}</strong> • ${mood} • ${tempo}
+                            </div>
+                            <div class="combination-count">${count}x</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+    }
+
+    updateTrendAnalysis(history) {
+        const trendEl = document.getElementById('trend-analysis');
+        if (!trendEl) return;
+
+        if (history.length < 3) {
+            trendEl.innerHTML = '<p class="trend-placeholder">Generate more prompts to see trends</p>';
+            return;
+        }
+
+        const lastWeek = history.filter(item => {
+            const itemDate = new Date(item.date);
+            const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+            return itemDate >= weekAgo;
+        });
+
+        const genres = {};
+        lastWeek.forEach(item => {
+            const genre = (item.data || {}).genre || 'Unknown';
+            genres[genre] = (genres[genre] || 0) + 1;
+        });
+
+        const topGenre = Object.entries(genres).sort((a, b) => b[1] - a[1])[0];
+        
+        trendEl.innerHTML = `
+            <div class="trend-item">
+                <p><strong>Most used genre this week:</strong> ${topGenre ? topGenre[0] : 'N/A'}</p>
+                <p><strong>Prompts created this week:</strong> ${lastWeek.length}</p>
+            </div>
+        `;
+    }
+
+    // ==================== BATCH GENERATE ====================
+    
+    initBatchGenerate() {
+        // Already initialized in attachEventListeners
+    }
+
+    showBatchModal() {
+        const modal = document.getElementById('batch-generate-modal');
+        if (!modal) return;
+        
+        const presets = this.getPresets();
+        const selectionEl = document.getElementById('batch-presets-selection');
+        
+        if (selectionEl) {
+            if (presets.length === 0) {
+                selectionEl.innerHTML = '<p>No presets available. Save some presets first.</p>';
+            } else {
+                selectionEl.innerHTML = presets.map(preset => `
+                    <label class="batch-preset-checkbox">
+                        <input type="checkbox" value="${preset.id}" data-preset-id="${preset.id}">
+                        <span>${this.escapeHtml(preset.name)}</span>
+                    </label>
+                `).join('');
+            }
+        }
+        
+        modal.style.display = 'flex';
+    }
+
+    closeBatchModal() {
+        const modal = document.getElementById('batch-generate-modal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    startBatchGenerate() {
+        const checkboxes = document.querySelectorAll('#batch-presets-selection input[type="checkbox"]:checked');
+        const count = parseInt(document.getElementById('batch-count').value) || 5;
+        
+        if (checkboxes.length === 0) {
+            this.showToast('Please select at least one preset.', 'error');
+            return;
+        }
+
+        const presets = this.getPresets();
+        const selectedPresets = Array.from(checkboxes).map(cb => {
+            const presetId = parseInt(cb.dataset.presetId);
+            return presets.find(p => p.id === presetId);
+        }).filter(Boolean);
+
+        const results = [];
+        for (let i = 0; i < count; i++) {
+            const randomPreset = selectedPresets[Math.floor(Math.random() * selectedPresets.length)];
+            this.applyPresetData(randomPreset.data);
+            this.generatePrompt();
+            const musicPrompt = this.promptMusic.value;
+            const lyricsPrompt = this.promptLyrics.value;
+            results.push({
+                id: Date.now() + i,
+                preset: randomPreset.name,
+                music: musicPrompt,
+                lyrics: lyricsPrompt
+            });
+        }
+
+        this.batchResults = results;
+        this.displayBatchResults(results);
+    }
+
+    displayBatchResults(results) {
+        const resultsEl = document.getElementById('batch-results');
+        const resultsListEl = document.getElementById('batch-results-list');
+        
+        if (resultsEl) resultsEl.style.display = 'block';
+        if (resultsListEl) {
+            resultsListEl.innerHTML = results.map((result, index) => `
+                <div class="batch-result-item">
+                    <div class="batch-result-header">
+                        <strong>#${index + 1} - ${this.escapeHtml(result.preset)}</strong>
+                        <button class="btn-small btn-secondary" data-batch-copy="${index}">Copy</button>
+                    </div>
+                    <div class="batch-result-content">
+                        <p><strong>Styles:</strong> ${this.escapeHtml(result.music.substring(0, 100))}${result.music.length > 100 ? '...' : ''}</p>
+                        ${result.lyrics ? `<p><strong>Lyrics:</strong> ${this.escapeHtml(result.lyrics.substring(0, 50))}${result.lyrics.length > 50 ? '...' : ''}</p>` : ''}
+                    </div>
+                </div>
+            `).join('');
+
+            resultsListEl.querySelectorAll('[data-batch-copy]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const index = parseInt(btn.dataset.batchCopy);
+                    const result = results[index];
+                    const combined = `Styles: ${result.music}\n\nLyrics: ${result.lyrics || ''}`;
+                    this.copyToClipboard(combined, 'Batch prompt copied!');
+                });
+            });
+        }
+    }
+
+    exportBatchResults() {
+        if (!this.batchResults || this.batchResults.length === 0) {
+            this.showToast('No batch results to export.', 'error');
+            return;
+        }
+
+        const csv = this.batchResults.map((result, index) => {
+            return `${index + 1},"${result.preset}","${result.music.replace(/"/g, '""')}","${(result.lyrics || '').replace(/"/g, '""')}"`;
+        }).join('\n');
+
+        const header = 'Index,Preset,Styles Prompt,Lyrics Prompt\n';
+        const blob = new Blob([header + csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `batch-prompts-${Date.now()}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        this.showToast('Batch results exported!', 'success');
+    }
+
+    // ==================== PROMPT VERSIONING ====================
+    
+    initPromptVersioning() {
+        // Versioning is integrated into savePrompt
+    }
+
+    savePromptWithVersion() {
+        const musicPrompt = this.promptMusic.value;
+        const lyricsPrompt = this.promptLyrics.value;
+        const currentData = this.collectFormData();
+        
+        if (!musicPrompt && !lyricsPrompt) {
+            this.showToast('No prompt to save. Please generate a prompt first.', 'error');
+            return;
+        }
+
+        let combined = '';
+        if (musicPrompt && lyricsPrompt) {
+            combined = `Styles: ${musicPrompt}\n\nLyrics: ${lyricsPrompt}`;
+        } else if (musicPrompt) {
+            combined = musicPrompt;
+        } else {
+            combined = lyricsPrompt;
+        }
+
+        const history = this.getHistory();
+        // Try to find similar prompt (same form data)
+        const existingVersion = history.find(item => {
+            const itemData = item.data || {};
+            if (!itemData || Object.keys(itemData).length === 0) return false;
+            // Check if key fields match
+            const keyFields = ['genre', 'tempo', 'mood'];
+            return keyFields.every(field => {
+                const itemVal = itemData[field] || '';
+                const currentVal = currentData[field] || '';
+                return itemVal === currentVal && itemVal !== '';
+            });
+        });
+
+        let version = 1;
+        if (existingVersion) {
+            version = (existingVersion.version || 1) + 1;
+            existingVersion.version = version;
+            existingVersion.date = new Date().toLocaleDateString();
+            existingVersion.time = new Date().toLocaleTimeString();
+            existingVersion.prompt = combined;
+            existingVersion.data = currentData;
+        } else {
+            const newItem = {
+                id: Date.now(),
+                prompt: combined,
+                data: currentData,
+                date: new Date().toLocaleDateString(),
+                time: new Date().toLocaleTimeString(),
+                version: 1,
+                favorite: false
+            };
+            history.unshift(newItem);
+        }
+
+        this.saveHistory(history);
+        this.loadHistory();
+        this.showToast(`Prompt saved${existingVersion ? ` (v${version})` : ''}!`, 'success');
+        this.trackSaveAction();
+    }
+
+    // ==================== ADVANCED EXPORT/IMPORT ====================
+    
+    exportAsCSV() {
+        const history = this.getHistory();
+        if (history.length === 0) {
+            this.showToast('No history to export.', 'error');
+            return;
+        }
+
+        const csv = history.map(item => {
+            const prompt = item.prompt.replace(/"/g, '""');
+            const date = item.date || '';
+            const time = item.time || '';
+            return `"${date}","${time}","${prompt}"`;
+        }).join('\n');
+
+        const header = 'Date,Time,Prompt\n';
+        const blob = new Blob([header + csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `suno-prompts-${Date.now()}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        this.showToast('History exported as CSV!', 'success');
+    }
+
+    exportForSuno() {
+        const musicPrompt = this.promptMusic.value;
+        const lyricsPrompt = this.promptLyrics.value;
+        
+        if (!musicPrompt && !lyricsPrompt) {
+            this.showToast('No prompt to export.', 'error');
+            return;
+        }
+
+        // Format optimized for Suno AI
+        let sunoFormat = '';
+        if (musicPrompt) {
+            sunoFormat += `[STYLES]\n${musicPrompt}\n\n`;
+        }
+        if (lyricsPrompt) {
+            sunoFormat += `[LYRICS]\n${lyricsPrompt}`;
+        }
+
+        const blob = new Blob([sunoFormat], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `suno-prompt-${Date.now()}.txt`;
+        a.click();
+        URL.revokeObjectURL(url);
+        this.showToast('Exported in Suno format!', 'success');
+    }
+
+    // Helper function to apply preset data
+    applyPresetData(data) {
+        Object.keys(data).forEach(key => {
+            const el = document.getElementById(key);
+            if (el && data[key]) {
+                if (el.tagName === 'SELECT') {
+                    el.value = data[key];
+                } else {
+                    el.value = data[key];
+                }
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        });
+        this.updateProgressIndicator();
+        this.updateAdvancedPreview();
+    }
+
+    // Helper function to collect form data
+    collectFormData() {
+        const data = {};
+        this.progressConfig.forEach(field => {
+            const el = document.getElementById(field.id);
+            if (el && el.value) {
+                data[field.id] = el.value;
+            }
+        });
+        return data;
     }
 }
 
