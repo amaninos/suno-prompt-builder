@@ -50,12 +50,14 @@
     <script>
       (function() {
         let checkInterval = null;
+        let adBlockDetected = false;
         
         function removeOverlay() {
           const overlay = document.getElementById('adblock-overlay');
           if (overlay) {
             overlay.remove();
             document.body.style.overflow = '';
+            adBlockDetected = false;
           }
           if (checkInterval) {
             clearInterval(checkInterval);
@@ -64,49 +66,61 @@
         }
         
         function checkAdBlock() {
-          // Çoklu test yöntemi
-          const tests = [
-            function() {
-              const test = document.createElement('div');
-              test.className = 'adsbox';
-              test.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;';
-              document.body.appendChild(test);
-              const blocked = test.offsetHeight === 0 || test.offsetWidth === 0;
-              if (test.parentNode) test.parentNode.removeChild(test);
-              return blocked;
-            },
-            function() {
-              const test = document.createElement('div');
-              test.innerHTML = '&nbsp;';
-              test.className = 'advertisement';
-              test.style.cssText = 'position:absolute;left:-9999px;';
-              document.body.appendChild(test);
-              const blocked = test.offsetHeight === 0;
-              if (test.parentNode) test.parentNode.removeChild(test);
-              return blocked;
-            },
-            function() {
-              const test = document.createElement('div');
-              test.className = 'pub_300x250 pub_300x250m pub_728x90 text-ad textAd text_ad text_ads text-ads text-ad-links';
-              test.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;';
-              document.body.appendChild(test);
-              const blocked = test.offsetHeight === 0 || test.style.display === 'none';
-              if (test.parentNode) test.parentNode.removeChild(test);
-              return blocked;
+          try {
+            // Test 1: adsbox class
+            const test1 = document.createElement('div');
+            test1.className = 'adsbox';
+            test1.innerHTML = '&nbsp;';
+            test1.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;visibility:hidden;';
+            document.body.appendChild(test1);
+            const blocked1 = test1.offsetHeight === 0 || test1.offsetWidth === 0 || window.getComputedStyle(test1).display === 'none';
+            if (test1.parentNode) test1.parentNode.removeChild(test1);
+            
+            // Test 2: advertisement class
+            const test2 = document.createElement('div');
+            test2.className = 'advertisement';
+            test2.innerHTML = '&nbsp;';
+            test2.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;';
+            document.body.appendChild(test2);
+            const blocked2 = test2.offsetHeight === 0;
+            if (test2.parentNode) test2.parentNode.removeChild(test2);
+            
+            // Test 3: AdSense script kontrolü (script yüklendikten sonra kontrol et)
+            let blocked3 = false;
+            if (document.querySelector('script[src*="adsbygoogle"]')) {
+              // Script tag var ama adsbygoogle undefined ise bloklanmış
+              blocked3 = typeof adsbygoogle === 'undefined';
             }
-          ];
-          
-          let blockedCount = 0;
-          for (let i = 0; i < tests.length; i++) {
-            if (tests[i]()) blockedCount++;
+            
+            // Test 4: Reklam içerikli div
+            const test4 = document.createElement('div');
+            test4.className = 'pub_300x250 pub_300x250m pub_728x90 text-ad textAd text_ad text_ads text-ads text-ad-links';
+            test4.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;';
+            document.body.appendChild(test4);
+            const blocked4 = test4.offsetHeight === 0 || test4.offsetWidth === 0;
+            if (test4.parentNode) test4.parentNode.removeChild(test4);
+            
+            // Test 5: banner class
+            const test5 = document.createElement('div');
+            test5.className = 'banner';
+            test5.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;';
+            document.body.appendChild(test5);
+            const blocked5 = test5.offsetHeight === 0;
+            if (test5.parentNode) test5.parentNode.removeChild(test5);
+            
+            // En az 2 test başarısızsa AdBlock var
+            const blockedCount = [blocked1, blocked2, blocked4, blocked5].filter(Boolean).length;
+            return blockedCount >= 2;
+          } catch(e) {
+            console.error('AdBlock check error:', e);
+            return false;
           }
-          
-          return blockedCount >= 2; // 2 veya daha fazla test başarısızsa AdBlock var
         }
         
         function showOverlay() {
-          if (document.getElementById('adblock-overlay')) return;
+          if (document.getElementById('adblock-overlay') || adBlockDetected) return;
           
+          adBlockDetected = true;
           document.body.style.overflow = 'hidden';
           
           const overlay = document.createElement('div');
@@ -148,20 +162,39 @@
           }
         };
         
-        // İlk kontrol
+        // İlk kontrol - AdSense script yüklendikten sonra
         function init() {
-          if (checkAdBlock()) {
-            showOverlay();
-          } else {
-            removeOverlay();
-          }
+          // AdSense script yüklendikten sonra kontrol et
+          setTimeout(function() {
+            let adBlockFound = checkAdBlock();
+            
+            // AdSense script kontrolü
+            if (document.querySelector('script[src*="adsbygoogle"]')) {
+              setTimeout(function() {
+                if (typeof adsbygoogle === 'undefined') {
+                  adBlockFound = true;
+                }
+                if (adBlockFound) {
+                  showOverlay();
+                } else {
+                  removeOverlay();
+                }
+              }, 3000);
+            } else {
+              if (adBlockFound) {
+                showOverlay();
+              } else {
+                removeOverlay();
+              }
+            }
+          }, 2000);
         }
         
         // Sayfa yüklendiğinde
         if (document.readyState === 'loading') {
           document.addEventListener('DOMContentLoaded', init);
         } else {
-          setTimeout(init, 500);
+          init();
         }
         
         // Sürekli kontrol (her 2 saniyede)
