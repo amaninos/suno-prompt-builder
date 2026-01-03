@@ -46,6 +46,129 @@
     <!-- Stylesheet -->
     <link rel="stylesheet" href="style.css">
     
+    <!-- AdBlock Detection -->
+    <script src="https://cdn.jsdelivr.net/npm/blockadblock@3.2.1/blockadblock.min.js"></script>
+    <script>
+      // AdBlock tespit edildiğinde çalışacak
+      (function() {
+        function detectAdBlock() {
+          // Test reklam elementi oluştur
+          const testAd = document.createElement('div');
+          testAd.innerHTML = '&nbsp;';
+          testAd.className = 'adsbox';
+          testAd.style.position = 'absolute';
+          testAd.style.left = '-9999px';
+          testAd.style.height = '1px';
+          document.body.appendChild(testAd);
+          
+          setTimeout(function() {
+            const isBlocked = testAd.offsetHeight === 0;
+            document.body.removeChild(testAd);
+            
+            if (isBlocked || typeof blockAdBlock !== 'undefined' && blockAdBlock) {
+              showAdBlockWarning();
+            }
+          }, 100);
+        }
+        
+        function showAdBlockWarning() {
+          // Sayfayı gizle
+          document.body.style.overflow = 'hidden';
+          
+          // Overlay oluştur
+          const overlay = document.createElement('div');
+          overlay.id = 'adblock-overlay';
+          overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 999999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
+          `;
+          
+          overlay.innerHTML = `
+            <div style="
+              background: #1C1C1E;
+              border-radius: 20px;
+              padding: 40px;
+              max-width: 500px;
+              text-align: center;
+              box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            ">
+              <div style="font-size: 64px; margin-bottom: 20px;">🚫</div>
+              <h2 style="color: #FFFFFF; margin: 0 0 16px 0; font-size: 24px; font-weight: 600;">
+                AdBlock Tespit Edildi
+              </h2>
+              <p style="color: rgba(255,255,255,0.7); margin: 0 0 24px 0; line-height: 1.6; font-size: 15px;">
+                Bu site reklam gelirleriyle ücretsiz olarak çalışmaktadır.<br>
+                Lütfen AdBlock'u devre dışı bırakıp sayfayı yenileyin.
+              </p>
+              <button onclick="location.reload()" style="
+                background: #007AFF;
+                color: #FFFFFF;
+                border: none;
+                border-radius: 12px;
+                padding: 14px 32px;
+                font-size: 16px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.2s;
+              " onmouseover="this.style.background='#0051D5'" onmouseout="this.style.background='#007AFF'">
+                Sayfayı Yenile
+              </button>
+            </div>
+          `;
+          
+          document.body.appendChild(overlay);
+        }
+        
+        // Sayfa yüklendiğinde kontrol et
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', detectAdBlock);
+        } else {
+          detectAdBlock();
+        }
+        
+        // BlockAdBlock kütüphanesi ile tespit
+        setTimeout(function() {
+          if (typeof blockAdBlock !== 'undefined') {
+            blockAdBlock.onDetected(function() {
+              showAdBlockWarning();
+            });
+            blockAdBlock.onNotDetected(function() {
+              // AdBlock yok, normal devam et
+            });
+          }
+          
+          // Ek kontrol: Google AdSense script yüklendi mi?
+          setTimeout(function() {
+            if (typeof adsbygoogle === 'undefined') {
+              // AdSense yüklenmedi, muhtemelen AdBlock var
+              const testBanner = document.createElement('div');
+              testBanner.className = 'pub_300x250 pub_300x250m pub_728x90 text-ad textAd text_ad text_ads text-ads text-ad-links';
+              testBanner.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;';
+              document.body.appendChild(testBanner);
+              
+              setTimeout(function() {
+                if (testBanner.offsetHeight === 0 || testBanner.style.display === 'none') {
+                  showAdBlockWarning();
+                }
+                if (testBanner.parentNode) {
+                  testBanner.parentNode.removeChild(testBanner);
+                }
+              }, 200);
+            }
+          }, 1000);
+        }, 500);
+      })();
+    </script>
+    
     <!-- Google AdSense Verification -->
     <meta name="google-adsense-account" content="ca-pub-7511224228193677">
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7511224228193677"
