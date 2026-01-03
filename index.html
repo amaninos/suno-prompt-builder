@@ -47,196 +47,131 @@
     <link rel="stylesheet" href="style.css">
     
     <!-- AdBlock Detection -->
-    <script src="https://cdn.jsdelivr.net/npm/blockadblock@3.2.1/blockadblock.min.js"></script>
     <script>
-      // AdBlock tespit edildiğinde çalışacak
       (function() {
-        function detectAdBlock() {
-          // Test reklam elementi oluştur
-          const testAd = document.createElement('div');
-          testAd.innerHTML = '&nbsp;';
-          testAd.className = 'adsbox';
-          testAd.style.position = 'absolute';
-          testAd.style.left = '-9999px';
-          testAd.style.height = '1px';
-          document.body.appendChild(testAd);
-          
-          setTimeout(function() {
-            const isBlocked = testAd.offsetHeight === 0;
-            document.body.removeChild(testAd);
-            
-            if (isBlocked) {
-              showAdBlockWarning();
-            } else {
-              // AdBlock yok, overlay'i kaldır
-              removeAdBlockWarning();
-            }
-          }, 100);
-        }
+        let checkInterval = null;
         
-        function removeAdBlockWarning() {
+        function removeOverlay() {
           const overlay = document.getElementById('adblock-overlay');
           if (overlay) {
             overlay.remove();
             document.body.style.overflow = '';
           }
+          if (checkInterval) {
+            clearInterval(checkInterval);
+            checkInterval = null;
+          }
         }
         
-        function checkAdBlockRemoved() {
-          // Test reklam elementi oluştur
-          const testAd = document.createElement('div');
-          testAd.innerHTML = '&nbsp;';
-          testAd.className = 'adsbox';
-          testAd.style.position = 'absolute';
-          testAd.style.left = '-9999px';
-          testAd.style.height = '1px';
-          document.body.appendChild(testAd);
-          
-          setTimeout(function() {
-            const isBlocked = testAd.offsetHeight === 0;
-            document.body.removeChild(testAd);
-            
-            // AdBlock kaldırıldıysa overlay'i kaldır
-            if (!isBlocked) {
-              removeAdBlockWarning();
+        function checkAdBlock() {
+          // Çoklu test yöntemi
+          const tests = [
+            function() {
+              const test = document.createElement('div');
+              test.className = 'adsbox';
+              test.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;';
+              document.body.appendChild(test);
+              const blocked = test.offsetHeight === 0 || test.offsetWidth === 0;
+              if (test.parentNode) test.parentNode.removeChild(test);
+              return blocked;
+            },
+            function() {
+              const test = document.createElement('div');
+              test.innerHTML = '&nbsp;';
+              test.className = 'advertisement';
+              test.style.cssText = 'position:absolute;left:-9999px;';
+              document.body.appendChild(test);
+              const blocked = test.offsetHeight === 0;
+              if (test.parentNode) test.parentNode.removeChild(test);
+              return blocked;
+            },
+            function() {
+              const test = document.createElement('div');
+              test.className = 'pub_300x250 pub_300x250m pub_728x90 text-ad textAd text_ad text_ads text-ads text-ad-links';
+              test.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;';
+              document.body.appendChild(test);
+              const blocked = test.offsetHeight === 0 || test.style.display === 'none';
+              if (test.parentNode) test.parentNode.removeChild(test);
+              return blocked;
             }
-          }, 100);
-        }
-        
-        function showAdBlockWarning() {
-          // Zaten overlay varsa tekrar oluşturma
-          if (document.getElementById('adblock-overlay')) {
-            return;
+          ];
+          
+          let blockedCount = 0;
+          for (let i = 0; i < tests.length; i++) {
+            if (tests[i]()) blockedCount++;
           }
           
-          // Sayfayı gizle
+          return blockedCount >= 2; // 2 veya daha fazla test başarısızsa AdBlock var
+        }
+        
+        function showOverlay() {
+          if (document.getElementById('adblock-overlay')) return;
+          
           document.body.style.overflow = 'hidden';
           
-          // Overlay oluştur
           const overlay = document.createElement('div');
           overlay.id = 'adblock-overlay';
-          overlay.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.95);
-            z-index: 999999;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
-          `;
+          overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:999999;display:flex;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",system-ui,sans-serif;';
           
           overlay.innerHTML = `
-            <div style="
-              background: #1C1C1E;
-              border-radius: 20px;
-              padding: 40px;
-              max-width: 500px;
-              text-align: center;
-              box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-            ">
-              <div style="font-size: 64px; margin-bottom: 20px;">🚫</div>
-              <h2 style="color: #FFFFFF; margin: 0 0 16px 0; font-size: 24px; font-weight: 600;">
-                AdBlock Tespit Edildi
-              </h2>
-              <p style="color: rgba(255,255,255,0.7); margin: 0 0 24px 0; line-height: 1.6; font-size: 15px;">
+            <div style="background:#1C1C1E;border-radius:20px;padding:40px;max-width:500px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+              <div style="font-size:64px;margin-bottom:20px;">🚫</div>
+              <h2 style="color:#FFFFFF;margin:0 0 16px 0;font-size:24px;font-weight:600;">AdBlock Tespit Edildi</h2>
+              <p style="color:rgba(255,255,255,0.7);margin:0 0 24px 0;line-height:1.6;font-size:15px;">
                 Bu site reklam gelirleriyle ücretsiz olarak çalışmaktadır.<br>
                 Lütfen AdBlock'u devre dışı bırakıp sayfayı yenileyin.
               </p>
-              <button onclick="location.reload()" style="
-                background: #007AFF;
-                color: #FFFFFF;
-                border: none;
-                border-radius: 12px;
-                padding: 14px 32px;
-                font-size: 16px;
-                font-weight: 600;
-                cursor: pointer;
-                transition: all 0.2s;
-                margin-right: 12px;
-              " onmouseover="this.style.background='#0051D5'" onmouseout="this.style.background='#007AFF'">
-                Sayfayı Yenile
-              </button>
-              <button onclick="checkAdBlockRemoved(); setTimeout(function(){if(!document.getElementById('adblock-overlay')){location.reload();}}, 500);" style="
-                background: transparent;
-                color: #FFFFFF;
-                border: 1px solid rgba(255,255,255,0.3);
-                border-radius: 12px;
-                padding: 14px 32px;
-                font-size: 16px;
-                font-weight: 600;
-                cursor: pointer;
-                transition: all 0.2s;
-              " onmouseover="this.style.borderColor='rgba(255,255,255,0.6)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.3)'">
-                Tekrar Dene
-              </button>
+              <button onclick="location.reload()" style="background:#007AFF;color:#FFFFFF;border:none;border-radius:12px;padding:14px 32px;font-size:16px;font-weight:600;cursor:pointer;margin-right:12px;" onmouseover="this.style.background='#0051D5'" onmouseout="this.style.background='#007AFF'">Sayfayı Yenile</button>
+              <button onclick="window.checkAdBlockAgain()" style="background:transparent;color:#FFFFFF;border:1px solid rgba(255,255,255,0.3);border-radius:12px;padding:14px 32px;font-size:16px;font-weight:600;cursor:pointer;" onmouseover="this.style.borderColor='rgba(255,255,255,0.6)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.3)'">Tekrar Dene</button>
             </div>
           `;
           
           document.body.appendChild(overlay);
           
-          // Her 2 saniyede bir AdBlock'un kaldırıldığını kontrol et
-          const checkInterval = setInterval(function() {
-            checkAdBlockRemoved();
-            // Overlay kaldırıldıysa interval'i durdur
-            if (!document.getElementById('adblock-overlay')) {
-              clearInterval(checkInterval);
-            }
-          }, 2000);
-        }
-        
-        // Sayfa yüklendiğinde kontrol et
-        if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', detectAdBlock);
-        } else {
-          detectAdBlock();
-        }
-        
-        // BlockAdBlock kütüphanesi ile tespit
-        setTimeout(function() {
-          if (typeof blockAdBlock !== 'undefined') {
-            blockAdBlock.onDetected(function() {
-              showAdBlockWarning();
-            });
-            blockAdBlock.onNotDetected(function() {
-              // AdBlock yok, overlay'i kaldır
-              removeAdBlockWarning();
-            });
-          }
-          
-          // Ek kontrol: Google AdSense script yüklendi mi?
-          setTimeout(function() {
-            if (typeof adsbygoogle === 'undefined') {
-              // AdSense yüklenmedi, muhtemelen AdBlock var
-              const testBanner = document.createElement('div');
-              testBanner.className = 'pub_300x250 pub_300x250m pub_728x90 text-ad textAd text_ad text_ads text-ads text-ad-links';
-              testBanner.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;';
-              document.body.appendChild(testBanner);
-              
-              setTimeout(function() {
-                if (testBanner.offsetHeight === 0 || testBanner.style.display === 'none') {
-                  showAdBlockWarning();
-                } else {
-                  removeAdBlockWarning();
-                }
-                if (testBanner.parentNode) {
-                  testBanner.parentNode.removeChild(testBanner);
-                }
-              }, 200);
-            } else {
-              // AdSense yüklendi, AdBlock yok
-              removeAdBlockWarning();
+          // Her 1 saniyede bir kontrol et
+          checkInterval = setInterval(function() {
+            if (!checkAdBlock()) {
+              removeOverlay();
             }
           }, 1000);
-        }, 500);
+        }
         
-        // Sürekli kontrol (her 3 saniyede bir)
+        // Global fonksiyon
+        window.checkAdBlockAgain = function() {
+          if (!checkAdBlock()) {
+            removeOverlay();
+            setTimeout(function() {
+              if (!document.getElementById('adblock-overlay')) {
+                location.reload();
+              }
+            }, 300);
+          }
+        };
+        
+        // İlk kontrol
+        function init() {
+          if (checkAdBlock()) {
+            showOverlay();
+          } else {
+            removeOverlay();
+          }
+        }
+        
+        // Sayfa yüklendiğinde
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', init);
+        } else {
+          setTimeout(init, 500);
+        }
+        
+        // Sürekli kontrol (her 2 saniyede)
         setInterval(function() {
-          detectAdBlock();
-        }, 3000);
+          if (checkAdBlock()) {
+            showOverlay();
+          } else {
+            removeOverlay();
+          }
+        }, 2000);
       })();
     </script>
     
