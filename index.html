@@ -142,12 +142,14 @@
           
           document.body.appendChild(overlay);
           
-          // Her 1 saniyede bir kontrol et
-          checkInterval = setInterval(function() {
-            if (!checkAdBlock()) {
-              removeOverlay();
-            }
-          }, 1000);
+          // Overlay gösterildikten sonra 5 saniye bekle, sonra kontrol et
+          setTimeout(function() {
+            checkInterval = setInterval(function() {
+              if (!checkAdBlock()) {
+                removeOverlay();
+              }
+            }, 2000);
+          }, 5000);
         }
         
         // Global fonksiyon
@@ -197,14 +199,17 @@
           init();
         }
         
-        // Sürekli kontrol (her 2 saniyede)
+        // Sürekli kontrol (her 3 saniyede) - overlay gösterildiyse kontrol yapma
         setInterval(function() {
-          if (checkAdBlock()) {
-            showOverlay();
-          } else {
-            removeOverlay();
+          // Overlay gösterildiyse kontrol yapma, sadece kullanıcı "Tekrar Dene" butonuna basarsa kontrol edilecek
+          if (!document.getElementById('adblock-overlay')) {
+            if (checkAdBlock()) {
+              showOverlay();
+            } else {
+              removeOverlay();
+            }
           }
-        }, 2000);
+        }, 3000);
       })();
     </script>
     
