@@ -65,13 +65,50 @@
             const isBlocked = testAd.offsetHeight === 0;
             document.body.removeChild(testAd);
             
-            if (isBlocked || typeof blockAdBlock !== 'undefined' && blockAdBlock) {
+            if (isBlocked) {
               showAdBlockWarning();
+            } else {
+              // AdBlock yok, overlay'i kaldır
+              removeAdBlockWarning();
+            }
+          }, 100);
+        }
+        
+        function removeAdBlockWarning() {
+          const overlay = document.getElementById('adblock-overlay');
+          if (overlay) {
+            overlay.remove();
+            document.body.style.overflow = '';
+          }
+        }
+        
+        function checkAdBlockRemoved() {
+          // Test reklam elementi oluştur
+          const testAd = document.createElement('div');
+          testAd.innerHTML = '&nbsp;';
+          testAd.className = 'adsbox';
+          testAd.style.position = 'absolute';
+          testAd.style.left = '-9999px';
+          testAd.style.height = '1px';
+          document.body.appendChild(testAd);
+          
+          setTimeout(function() {
+            const isBlocked = testAd.offsetHeight === 0;
+            document.body.removeChild(testAd);
+            
+            // AdBlock kaldırıldıysa overlay'i kaldır
+            if (!isBlocked) {
+              removeAdBlockWarning();
             }
           }, 100);
         }
         
         function showAdBlockWarning() {
+          // Zaten overlay varsa tekrar oluşturma
+          if (document.getElementById('adblock-overlay')) {
+            return;
+          }
+          
           // Sayfayı gizle
           document.body.style.overflow = 'hidden';
           
@@ -119,13 +156,36 @@
                 font-weight: 600;
                 cursor: pointer;
                 transition: all 0.2s;
+                margin-right: 12px;
               " onmouseover="this.style.background='#0051D5'" onmouseout="this.style.background='#007AFF'">
                 Sayfayı Yenile
+              </button>
+              <button onclick="checkAdBlockRemoved(); setTimeout(function(){if(!document.getElementById('adblock-overlay')){location.reload();}}, 500);" style="
+                background: transparent;
+                color: #FFFFFF;
+                border: 1px solid rgba(255,255,255,0.3);
+                border-radius: 12px;
+                padding: 14px 32px;
+                font-size: 16px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.2s;
+              " onmouseover="this.style.borderColor='rgba(255,255,255,0.6)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.3)'">
+                Tekrar Dene
               </button>
             </div>
           `;
           
           document.body.appendChild(overlay);
+          
+          // Her 2 saniyede bir AdBlock'un kaldırıldığını kontrol et
+          const checkInterval = setInterval(function() {
+            checkAdBlockRemoved();
+            // Overlay kaldırıldıysa interval'i durdur
+            if (!document.getElementById('adblock-overlay')) {
+              clearInterval(checkInterval);
+            }
+          }, 2000);
         }
         
         // Sayfa yüklendiğinde kontrol et
@@ -142,7 +202,8 @@
               showAdBlockWarning();
             });
             blockAdBlock.onNotDetected(function() {
-              // AdBlock yok, normal devam et
+              // AdBlock yok, overlay'i kaldır
+              removeAdBlockWarning();
             });
           }
           
@@ -158,14 +219,24 @@
               setTimeout(function() {
                 if (testBanner.offsetHeight === 0 || testBanner.style.display === 'none') {
                   showAdBlockWarning();
+                } else {
+                  removeAdBlockWarning();
                 }
                 if (testBanner.parentNode) {
                   testBanner.parentNode.removeChild(testBanner);
                 }
               }, 200);
+            } else {
+              // AdSense yüklendi, AdBlock yok
+              removeAdBlockWarning();
             }
           }, 1000);
         }, 500);
+        
+        // Sürekli kontrol (her 3 saniyede bir)
+        setInterval(function() {
+          detectAdBlock();
+        }, 3000);
       })();
     </script>
     
